@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "expo-file-system": "^55.0.11"
+  }
+}

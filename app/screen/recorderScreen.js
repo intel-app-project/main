@@ -1,39 +1,50 @@
-﻿import React from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
 
-const API_BASE_URL = "http://172.30.1.84:8000";
-const CSV_UPLOAD_ENDPOINT = "/upload-csv";
+const API_BASE_URL = "http://172.30.1.83:8000";
+const CSV_UPLOAD_ENDPOINT = "/api/testpost";
 
 const RecorderScreen = () => {
   const uploadCsvToServer = async (selectedFile) => {
+    console.log("1. 서버 업로드 시작 - 파일 정보:", selectedFile.name);
+
     const file = {
       uri: selectedFile.uri,
       name: selectedFile.name || "upload.csv",
       type: selectedFile.mimeType || "text/csv",
     };
 
+    console.log("2. FormData 생성 중...");
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${API_BASE_URL}${CSV_UPLOAD_ENDPOINT}`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      if (response.status === 404 || response.status === 405) {
-        throw new Error(
-          `ENDPOINT_ERROR: HTTP ${response.status} (${CSV_UPLOAD_ENDPOINT}) ${errorText}`,
-        );
+    console.log(
+      "3. Fetch 요청 보냄 - URL:",
+      `${API_BASE_URL}${CSV_UPLOAD_ENDPOINT}`,
+    );
+    try {
+      const response = await fetch(`${API_BASE_URL}${CSV_UPLOAD_ENDPOINT}`, {
+        method: "POST",
+        body: formData,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log("4. 서버 응답 수신 - 상태 코드:", response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("5. 서버 응답 오류 내용:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-      throw new Error(
-        `HTTP ${response.status} (${CSV_UPLOAD_ENDPOINT}) ${errorText}`,
-      );
+      const result = await response.json();
+      console.log("6. 업로드 성공! 결과:", result);
+      return { endpoint: CSV_UPLOAD_ENDPOINT, ...result };
+    } catch (fetchError) {
+      console.error("서버 통신 실패(네트워크 오류):", fetchError);
+      throw fetchError;
     }
-
-    return { endpoint: CSV_UPLOAD_ENDPOINT };
   };
 
   const openCsvPicker = async () => {
@@ -60,6 +71,18 @@ const RecorderScreen = () => {
       if (!selected) {
         Alert.alert("선택 오류", "CSV 파일 정보를 확인할 수 없습니다.");
         return;
+      }
+
+      // CSV 파일 내용 읽기
+      try {
+        const content = await FileSystem.readAsStringAsync(selected.uri, {
+          encoding: "utf8",
+        });
+        console.log("CSV 파일 내용 시작 ======================");
+        console.log(content);
+        console.log("CSV 파일 내용 끝 ========================");
+      } catch (readError) {
+        console.error("파일 읽기 오류:", readError);
       }
 
       Alert.alert("업로드 중", `선택한 파일: ${selected.name}`);
