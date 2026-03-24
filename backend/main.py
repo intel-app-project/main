@@ -1,8 +1,11 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import pandas as pd
+import io
 
 # .env 파일의 환경 변수 로드
 load_dotenv()
@@ -29,22 +32,73 @@ def read_hello():
     return {"message": "안녕하세요! Supabase가 준비되었습니다."}
 
 # Schedule 데이터 조회 핸들러
-@app.get("/api/Schedule") 
+@app.get("/api/schedule") 
 def get_Schedule():
     # Supabase 테이블 이름
-    response = supabase.table("Schedule").select("*").execute()
+    response = supabase.table("schedule").select("*").execute()
     return response.data
 
 # Member 데이터 조회 핸들러
-@app.get("/api/Member") 
+@app.get("/api/member") 
 def get_Member():
     # Supabase 테이블 이름
-    response = supabase.table("Member").select("*").execute()
+    response = supabase.table("member").select("*").execute()
     return response.data
 
-# Game 데이터 조회 핸들러
-@app.get("/api/Game") 
+# Game 데이터 조회 핸들러 (최근 20건만 조회하여 로딩 속도 개선)
+@app.get("/api/Game")
+@app.get("/api/game") 
 def get_Game():
-    # Supabase 테이블 이름
-    response = supabase.table("Game").select("*").execute()
+    # Supabase 테이블 이름, 최신순 20건 제한
+    response = supabase.table("game").select("*").order("id", desc=True).limit(20).execute()
     return response.data
+ 
+
+# Game 데이터 조회 핸들러
+@app.get("/") 
+def read_no():
+    return {"message": "no다."}
+
+# 404 예외 처리기 (없는 주소 처리)
+@app.exception_handler(404)
+async def not_found_exception_handler(request: Request, exc: Exception):
+    # request: 클라이언트에서 보낸 요청 정보(URL, 헤더 등)가 담겨있는 객체
+    # exc: 발생한 구체적인 에러(예외) 정보가 담겨있는 객체
+    return JSONResponse(
+        status_code=404,
+        content={"message": "없는 주소입니다"}
+    )
+
+# CSV 업로드 및 test 테이블 반영 핸들러
+@app.post("/upload-csv")
+async def upload_csv(file: UploadFile = File(...)):
+    try:
+        # 파일 내용 읽기
+        content = await file.read()
+        
+        # CSV 파일 파싱 (한글 인코딩 대응)
+        try:
+            df = pd.read_csv(io.BytesIO(content), encoding='cp949')
+        except:
+            df = pd.read_csv(io.BytesIO(content), encoding='utf-8')
+        
+        # NaN 값을 None으로 변환 (Supabase 입력 호환성)
+        df = df.where(pd.notnull(df), None)
+        
+        # 데이터를 딕셔너리 리스트 형태로 변환
+        data = df.to_dict(orient='records')
+        
+        if not data:
+            return {"message": "업로드할 데이터가 없습니다."}
+
+        # Supabase 'test' 테이블에 데이터 삽입
+        response = supabase.table("test").insert(data).execute()
+        
+        return {
+            "info": f"'{file.filename}' 파일 업로드 및 {len(data)}건 반영 완료!",
+            "data": response.data
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"CSV 처리 중 오류 발생: {str(e)}")
+

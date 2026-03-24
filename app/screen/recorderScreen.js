@@ -1,11 +1,11 @@
-﻿import React from "react";
+import React from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 
 const API_BASE_URL = "http://172.30.1.84:8000";
 const CSV_UPLOAD_ENDPOINT = "/upload-csv";
 
-const RecorderScreen = () => {
+const RecorderScreen = ({ onNavigate }) => {
   const uploadCsvToServer = async (selectedFile) => {
     const file = {
       uri: selectedFile.uri,
@@ -121,6 +121,10 @@ const RecorderScreen = () => {
         <TouchableOpacity style={styles.uploadButton} onPress={handlePickCsv}>
           <Text style={styles.uploadButtonText}>CSV 업로드</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.historyButton} onPress={() => onNavigate('history')}>
+          <Text style={styles.historyButtonText}>경기 내역 보기</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -159,6 +163,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   uploadButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  historyButton: {
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: "#4f46e5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -20,
+  },
+  historyButtonText: {
     color: "#fff",
     fontSize: 15,
     fontWeight: "600",

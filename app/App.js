@@ -1,11 +1,19 @@
 import { StyleSheet, View } from "react-native";
+import { useState } from "react";
 import LoginScreen from "./screen/loginScreen";
 import RecorderScreen from "./screen/recorderScreen";
+import HistoryScreen from "./screen/historyScreen";
 
 export default function App() {
+  const [currentScreen, setCurrentScreen] = useState('recorder');
+
   return (
     <View style={styles.container}>
-      <RecorderScreen />
+      {currentScreen === 'recorder' ? (
+        <RecorderScreen onNavigate={setCurrentScreen} />
+      ) : currentScreen === 'history' ? (
+        <HistoryScreen onNavigate={setCurrentScreen} />
+      ) : null}
     </View>
   );
 }
