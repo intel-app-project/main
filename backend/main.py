@@ -7,6 +7,11 @@ import pandas as pd
 import io
 import ast # 문자열 형태의 리스트를 변환하기 위해 필요
 
+import sys
+import os
+# 현재 파일(main.py)이 있는 디렉토리를 sys.path에 추가하여 어디서든 실행 가능하게 함
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from database import get_db
 from models import Team, TeamPlayerData
 
