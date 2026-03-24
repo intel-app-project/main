@@ -1,0 +1,5 @@
+fastapi==0.135.1
+uvicorn==0.41.0
+pydantic==2.12.52.0
+starlette==0.52.1
+python-dotenv==1.2.1
