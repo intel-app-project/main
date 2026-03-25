@@ -14,6 +14,7 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
   const [home, setHome] = useState("");
   const [away, setAway] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null); // 수정 중인 항목의 ID
 
   useEffect(() => {
     fetchSchedules();
@@ -61,8 +62,14 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
         away: parseInt(away, 10)
       };
 
-      const response = await fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`, {
-        method: "POST",
+      const url = editingId 
+        ? `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${editingId}`
+        : `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`;
+      
+      const method = editingId ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json"
         },
@@ -74,19 +81,36 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
       }
       
       const result = await response.json();
-      Alert.alert("등록 성공", "일정이 성공적으로 등록되었습니다.");
+      Alert.alert(
+        editingId ? "수정 성공" : "등록 성공", 
+        editingId ? "일정이 성공적으로 수정되었습니다." : "일정이 성공적으로 등록되었습니다."
+      );
       
-      setDate("");
-      setHome("");
-      setAway("");
-      
+      handleCancelEdit(); // 폼 초기화 및 수정 모드 종료
       fetchSchedules(); // 목록 즉시 갱신
     } catch (e) {
-      console.error("일정 등록 오류:", e);
-      Alert.alert("등록 실패", "일정 등록 중 오류가 발생했습니다.");
+      console.error(editingId ? "일정 수정 오류:" : "일정 등록 오류:", e);
+      Alert.alert(
+        editingId ? "수정 실패" : "등록 실패", 
+        editingId ? "일정 수정 중 오류가 발생했습니다." : "일정 등록 중 오류가 발생했습니다."
+      );
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (item) => {
+    setEditingId(item.id);
+    setDate(item.date);
+    setHome(item.home.toString());
+    setAway(item.away.toString());
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setDate("");
+    setHome("");
+    setAway("");
   };
 
   const handleDelete = (id) => {
@@ -130,14 +154,25 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
                 <Text style={styles.upcomingText}>예정</Text>
               )}
             </View>
-            <TouchableOpacity 
-              style={styles.deleteButton} 
-              onPress={() => handleDelete(item.id)}
-            >
-              <Text style={styles.deleteButtonText}>삭제</Text>
-            </TouchableOpacity>
-         </View>
-         <Text style={styles.itemText}>홈팀 ID: {item.home} / 원정팀 ID: {item.away}</Text>
+             <View style={styles.actionButtons}>
+               <TouchableOpacity 
+                 style={styles.editButton} 
+                 onPress={() => handleEdit(item)}
+               >
+                 <Text style={styles.editButtonText}>수정</Text>
+               </TouchableOpacity>
+               <TouchableOpacity 
+                 style={styles.deleteButton} 
+                 onPress={() => handleDelete(item.id)}
+               >
+                 <Text style={styles.deleteButtonText}>삭제</Text>
+               </TouchableOpacity>
+             </View>
+          </View>
+          <Text style={styles.itemText}>홈팀 ID: {item.home} / 원정팀 ID: {item.away}</Text>
+          {item.updated_at && (
+            <Text style={styles.updatedAtText}>최근 수정: {new Date(item.updated_at).toLocaleString('ko-KR')}</Text>
+          )}
       </View>
     );
   };
@@ -169,13 +204,23 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
             onChangeText={setAway}
             keyboardType="numeric"
          />
-         <TouchableOpacity 
-            style={[styles.submitButton, submitting && styles.submitButtonDisabled]} 
-            onPress={handleSubmit} 
-            disabled={submitting}
-         >
-            <Text style={styles.submitButtonText}>{submitting ? "등록 중..." : "일정 등록"}</Text>
-         </TouchableOpacity>
+          <TouchableOpacity 
+             style={[styles.submitButton, submitting && styles.submitButtonDisabled, editingId && styles.updateButton]} 
+             onPress={handleSubmit} 
+             disabled={submitting}
+          >
+             <Text style={styles.submitButtonText}>
+               {submitting ? (editingId ? "수정 중..." : "등록 중...") : (editingId ? "일정 수정 완료" : "일정 등록")}
+             </Text>
+          </TouchableOpacity>
+          {editingId && (
+            <TouchableOpacity 
+               style={styles.cancelButton} 
+               onPress={handleCancelEdit}
+            >
+               <Text style={styles.cancelButtonText}>수정 취소</Text>
+            </TouchableOpacity>
+          )}
       </View>
 
       <View style={styles.divider} />
@@ -349,5 +394,46 @@ const styles = StyleSheet.create({
     color: "#4a7c59",
     fontSize: 16,
     fontWeight: "700",
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "rgba(74, 124, 89, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(74, 124, 89, 0.2)",
+    marginRight: 8,
+  },
+  editButtonText: {
+    fontSize: 12,
+    color: "#4a7c59",
+    fontWeight: "700",
+  },
+  updateButton: {
+    backgroundColor: "#705c30",
+  },
+  cancelButton: {
+    height: 52,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+  },
+  cancelButtonText: {
+    color: "#6b7280",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  updatedAtText: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 4,
+    textAlign: 'right'
   }
 });

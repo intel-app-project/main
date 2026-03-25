@@ -72,6 +72,21 @@ def delete_schedule(schedule_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.put("/api/schedule/{schedule_id}")
+def update_schedule(schedule_id: int, schedule: ScheduleCreate):
+    try:
+        now = datetime.now().isoformat()
+        data = {
+            "date": schedule.date,
+            "home": schedule.home,
+            "away": schedule.away,
+            "updated_at": now
+        }
+        response = supabase.table("schedule").update(data).eq("id", schedule_id).execute()
+        return {"message": "일정이 성공적으로 수정되었습니다.", "data": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Member 데이터 조회 핸들러
 @app.get("/api/member") 
 def get_Member():
