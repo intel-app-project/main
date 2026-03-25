@@ -1,13 +1,14 @@
 import os
 import io
 from fastapi import FastAPI, Request, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse, UploadFile, File
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import pandas as pd
 import io
-import pandas as pd
+from datetime import datetime
 
 # .env 파일의 환경 변수 로드
 load_dotenv()
@@ -33,13 +34,43 @@ app.add_middleware(
 def read_hello():
     return {"message": "안녕하세요! Supabase가 준비되었습니다."}
 
+# 새로운 스케줄 등록을 위한 Pydantic 모델
+class ScheduleCreate(BaseModel):
+    date: str
+    home: int
+    away: int
+
+@app.post("/api/schedule")
+def create_schedule(schedule: ScheduleCreate):
+    try:
+        data = {
+            "date": schedule.date,
+            "home": schedule.home,
+            "away": schedule.away,
+            "done": 0,
+            "created_at": datetime.now().isoformat()
+        }
+        response = supabase.table("schedule").insert(data).execute()
+        return {"message": "일정이 성공적으로 등록되었습니다.", "data": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Schedule 데이터 조회 핸들러
 @app.get("/api/schedule") 
-@app.get("/api/schedule") 
 def get_Schedule():
-    # Supabase 테이블 이름
-    response = supabase.table("schedule").select("*").execute()
+    # deleted_at이 null인 데이터만 조회 (소프트 딜리트 필터링)
+    response = supabase.table("schedule").select("*").is_("deleted_at", "null").execute()
     return response.data
+
+@app.delete("/api/schedule/{schedule_id}")
+def delete_schedule(schedule_id: int):
+    try:
+        # 영구 삭제 대신 deleted_at에 현재 시간 기록
+        now = datetime.now().isoformat()
+        response = supabase.table("schedule").update({"deleted_at": now}).eq("id", schedule_id).execute()
+        return {"message": "일정이 논리적으로 삭제되었습니다.", "data": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Member 데이터 조회 핸들러
 @app.get("/api/member") 
