@@ -5,22 +5,29 @@ import RecorderScreen from "./screen/recorderScreen";
 import HistoryScreen from "./screen/historyScreen";
 import DirectorScreen from "./screen/DirectorScreen";
 import PlayerScreen from "./screen/PlayerScreen";
+import ScheduleScreen from "./screen/ScheduleScreen";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
+  const [user, setUser] = useState(null);
+
+  const handleNavigate = (screen, userData = null) => {
+    if (userData) setUser(userData);
+    setCurrentScreen(screen);
+  };
 
   return (
     <View style={styles.container}>
       {currentScreen === 'login' ? (
-        <LoginScreen onNavigate={setCurrentScreen} />
+        <LoginScreen onNavigate={handleNavigate} />
       ) : currentScreen === 'recorder' ? (
-        <RecorderScreen onNavigate={setCurrentScreen} />
+        <RecorderScreen onNavigate={handleNavigate} />
       ) : currentScreen === 'history' ? (
-        <HistoryScreen onNavigate={setCurrentScreen} />
+        <HistoryScreen onNavigate={handleNavigate} />
       ) : currentScreen === 'director' ? (
-        <DirectorScreen onNavigate={setCurrentScreen} />
+        <DirectorScreen onNavigate={handleNavigate} />
       ) : currentScreen === 'player' ? (
-        <PlayerScreen onNavigate={setCurrentScreen} />
+        <ScheduleScreen onNavigate={handleNavigate} user={user} />
       ) : null}
     </View>
   );

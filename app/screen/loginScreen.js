@@ -22,7 +22,7 @@ const LoginScreen = ({ onNavigate }) => {
     try {
       const { data, error } = await supabase
         .from("member")
-        .select("User_ID, User_PW, Primary_Position")
+        .select("Id, User_ID, User_PW, Primary_Position")
         .eq("User_ID", userId)
         .single();
 
@@ -45,12 +45,12 @@ const LoginScreen = ({ onNavigate }) => {
       // 로그인 성공 - 권한별 분기
       const position = data.Primary_Position;
       if (position === "감독") {
-        onNavigate("director");
+        onNavigate("director", data);
       } else if (position === "기록원") {
-        onNavigate("recorder");
+        onNavigate("recorder", data);
       } else {
-        // 그 외 (선수 등)
-        onNavigate("player");
+        // 그 외 (선수 등) -> 일정 화면으로 이동
+        onNavigate("player", data);
       }
     } catch (err) {
       Alert.alert("오류", "로그인 처리 중 문제가 발생했습니다.");
