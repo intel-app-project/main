@@ -54,52 +54,15 @@ def get_member():
     return response.data
 
 
-@app.get("/api/member/{user_id}")
-def get_member_by_user_id(user_id: str):
-    for lookup_column in ("User_ID", "user_id"):
-        response = (
-            supabase.table("member")
-            .select("*")
-            .eq(lookup_column, user_id)
-            .limit(1)
-            .execute()
-        )
-        rows = response.data or []
-        if rows:
-            member = rows[0]
-            return {
-                "user_id": str(first_non_empty(member, ["User_ID", "user_id"]) or user_id),
-                "name": str(first_non_empty(member, ["Name", "name"]) or user_id),
-                "member_id": first_non_empty(member, ["id", "member_id"]),
-                "member": member,
-            }
-
-    raise HTTPException(status_code=404, detail=f"member '{user_id}' not found")
-
+@app.get("/api/team")
+def get_team():
+    response = supabase.table("team").select("*").execute()
+    return response.data
 
 @app.get("/api/game")
 def get_game():
     response = supabase.table("game").select("*").execute()
     return response.data
-
-
-@app.get("/api/test")
-def get_test():
-    response = supabase.table("test").select("*").execute()
-    return response.data
-
-
-@app.post("/api/testpost")
-async def upload_test_csv(file: UploadFile = File(...)):
-    try:
-        content = await file.read()
-        df = pd.read_csv(io.BytesIO(content), encoding="utf-8")
-        data = df.to_dict(orient="records")
-        response = supabase.table("test").insert(data).execute()
-        return {"message": "Data inserted successfully.", "count": len(data), "data": response.data}
-    except Exception as exc:
-        return {"error": str(exc)}
-
 
 @app.get("/")
 def read_root():

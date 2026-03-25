@@ -12,34 +12,8 @@ import {
 
 const API_BASE_URL = "http://172.30.1.19:8000";
 const SCHEDULE_API_ENDPOINT = "/api/schedule";
-
-const FALLBACK_NEAREST = {
-  date: new Date(2024, 8, 12, 19, 30),
-  opponent: "리버 오크스",
-  teamName: "테라 타이탄즈",
-  stadiumName: "테라 센트럴 스타디움",
-  stadiumAddress: "경기도 그린필드파크 오크 애비뉴 442번지",
-  isHome: true,
-  dateText: "9월 12일",
-  timeText: "오후 7:30",
-};
-
-const FALLBACK_UPCOMING = [
-  { dateText: "9월 17일", opponent: "힐사이드 호크스", timeText: "오후 4:00" },
-  { dateText: "9월 19일", opponent: "파인 그로브 블루", timeText: "오후 7:00" },
-  {
-    dateText: "9월 24일",
-    opponent: "레이크사이드 스타즈",
-    timeText: "오후 6:30",
-  },
-];
-
-const calendarRows = [
-  ["25", "26", "27", "28", "29", "30", "1"],
-  ["2", "3", "4", "5", "6", "7", "8"],
-  ["9", "10", "11", "12", "13", "14", "15"],
-  ["16", "17", "18", "19", "20", "21", "22"],
-];
+const TEAM_API_ENDPOINT = "/api/team";
+const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const pick = (obj, keys) => {
   for (const key of keys) {
@@ -52,8 +26,7 @@ const pick = (obj, keys) => {
 
 const findMemberByUserId = (members, userId) =>
   members.find(
-    (member) =>
-      String(pick(member, ["User_ID", "user_id"]) || "").trim() === userId,
+    (member) => String(pick(member, ["User_ID", "user_id"]) || "").trim() === userId,
   );
 
 const parseJsonField = (value) => {
@@ -95,6 +68,17 @@ const toDate = (value) => {
   }
 
   const rawValue = String(value).trim();
+
+  if (/^\d{8}$/.test(rawValue)) {
+    const year = rawValue.substring(0, 4);
+    const month = rawValue.substring(4, 6);
+    const day = rawValue.substring(6, 8);
+    const date = new Date(`${year}-${month}-${day}T00:00:00`);
+    if (!Number.isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
   const candidateValues = [
     rawValue,
     rawValue.replace(" ", "T"),
@@ -119,7 +103,18 @@ const toDate = (value) => {
   return null;
 };
 
+const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
+
+const toDateKey = (date) =>
+  [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+
 const formatDateText = (date) => `${date.getMonth() + 1}월 ${date.getDate()}일`;
+const formatCalendarMonth = (date) => `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
 
 const formatTimeText = (date) => {
   const hour = date.getHours();
@@ -129,12 +124,63 @@ const formatTimeText = (date) => {
   return `${isPm ? "오후" : "오전"} ${displayHour}:${minute}`;
 };
 
+const buildCalendarRows = (monthDate) => {
+  const monthStart = startOfMonth(monthDate);
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(monthStart.getDate() - monthStart.getDay());
+
+  const rows = [];
+
+  for (let weekIndex = 0; weekIndex < 6; weekIndex += 1) {
+    const row = [];
+
+    for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+      const cellDate = new Date(gridStart);
+      cellDate.setDate(gridStart.getDate() + weekIndex * 7 + dayIndex);
+
+      row.push({
+        key: toDateKey(cellDate),
+        label: String(cellDate.getDate()),
+        dateKey: toDateKey(cellDate),
+        isCurrentMonth: cellDate.getMonth() === monthDate.getMonth(),
+      });
+    }
+
+    rows.push(row);
+  }
+
+  return rows;
+};
+
 const formatTeamLabel = (teamId, fallbackLabel) => {
   if (teamId === null || teamId === undefined || teamId === "") {
     return fallbackLabel;
   }
 
   return `팀 ${teamId}`;
+};
+
+const buildTeamNameMap = (teams) =>
+  teams.reduce((result, team) => {
+    const teamId = pick(team, ["Id", "id"]);
+    const teamName = pick(team, ["Name", "name"]);
+
+    if (teamId !== null && teamId !== undefined && teamName) {
+      result[String(teamId)] = String(teamName);
+    }
+
+    return result;
+  }, {});
+
+const resolveTeamName = (teamNameMap, teamId, fallbackLabel) => {
+  if (teamId !== null && teamId !== undefined && teamId !== "") {
+    const mappedName = teamNameMap[String(teamId)];
+    if (mappedName) {
+      return mappedName;
+    }
+  }
+
+  return formatTeamLabel(teamId, fallbackLabel);
 };
 
 const matchScheduleForUser = (row, member, userId) => {
@@ -153,18 +199,15 @@ const matchScheduleForUser = (row, member, userId) => {
     memberTeamId !== undefined &&
     String(awayTeamId || "") === String(memberTeamId);
 
-  const matched =
-    inHomeMembers || inAwayMembers || matchByHomeTeam || matchByAwayTeam;
-
   return {
-    matched,
+    matched: inHomeMembers || inAwayMembers || matchByHomeTeam || matchByAwayTeam,
     isHome: inHomeMembers || (!inAwayMembers && matchByHomeTeam),
     homeTeamId,
     awayTeamId,
   };
 };
 
-const normalizeSchedule = (row, scheduleContext, member) => {
+const normalizeSchedule = (row, scheduleContext, member, teamNameMap) => {
   const dateValue = pick(row, [
     "date",
     "start_time",
@@ -176,34 +219,28 @@ const normalizeSchedule = (row, scheduleContext, member) => {
   const date = toDate(dateValue);
   if (!date) return null;
 
-  const homeTeamId =
-    scheduleContext?.homeTeamId ?? pick(row, ["home", "home_team"]);
-  const awayTeamId =
-    scheduleContext?.awayTeamId ?? pick(row, ["away", "away_team"]);
+  const homeTeamId = scheduleContext?.homeTeamId ?? pick(row, ["home", "home_team"]);
+  const awayTeamId = scheduleContext?.awayTeamId ?? pick(row, ["away", "away_team"]);
   const isHome = Boolean(scheduleContext?.isHome);
   const memberTeamId = pick(member, ["Team", "team"]);
   const myTeamId = isHome ? homeTeamId : awayTeamId ?? memberTeamId;
   const opponentTeamId = isHome ? awayTeamId : homeTeamId;
+
   const teamName =
     pick(row, isHome ? ["home_name", "team_name"] : ["away_name", "team_name"]) ||
-    formatTeamLabel(myTeamId, "우리 팀");
+    resolveTeamName(teamNameMap, myTeamId, "우리 팀");
   const opponent =
     pick(
       row,
       isHome
         ? ["away_name", "opponent", "opponent_team", "away_team"]
         : ["home_name", "opponent", "opponent_team", "home_team"],
-    ) || formatTeamLabel(opponentTeamId, "상대팀 미정");
+    ) || resolveTeamName(teamNameMap, opponentTeamId, "상대팀 미정");
   const stadiumName =
-    pick(row, ["stadium", "stadium_name", "venue", "location"]) ||
-    "경기장 정보 없음";
+    pick(row, ["stadium", "stadium_name", "venue", "location"]) || "경기장 정보 없음";
   const stadiumAddress =
-    pick(row, [
-      "stadium_address",
-      "venue_address",
-      "address",
-      "location_detail",
-    ]) || "주소 정보 없음";
+    pick(row, ["stadium_address", "venue_address", "address", "location_detail"]) ||
+    "주소 정보 없음";
 
   return {
     date,
@@ -222,8 +259,11 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [memberName, setMemberName] = useState("");
-  const [nearestGame, setNearestGame] = useState(FALLBACK_NEAREST);
-  const [upcomingGames, setUpcomingGames] = useState(FALLBACK_UPCOMING);
+  const [nearestGame, setNearestGame] = useState(null);
+  const [upcomingGames, setUpcomingGames] = useState([]);
+  const [visibleUpcomingCount, setVisibleUpcomingCount] = useState(3);
+  const [calendarMonthDate, setCalendarMonthDate] = useState(startOfMonth(new Date()));
+  const [calendarEventDateKeys, setCalendarEventDateKeys] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -240,25 +280,31 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
       try {
         if (isMounted) {
           setLoading(true);
+          setNearestGame(null);
+          setUpcomingGames([]);
+          setVisibleUpcomingCount(3);
+          setCalendarEventDateKeys([]);
+          setCalendarMonthDate(startOfMonth(new Date()));
         }
 
-        const schedulePromise = fetch(
-          `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`,
-        );
-        const memberByIdPromise = fetch(
-          `${API_BASE_URL}/api/member/${encodeURIComponent(normalizedUserId)}`,
-        );
-        const [memberRes, scheduleRes] = await Promise.all([
-          memberByIdPromise,
-          schedulePromise,
+        const [memberRes, scheduleRes, teamRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/member/${encodeURIComponent(normalizedUserId)}`),
+          fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`),
+          fetch(`${API_BASE_URL}${TEAM_API_ENDPOINT}`),
         ]);
 
         if (!scheduleRes.ok) {
           throw new Error(`schedule API 오류: ${scheduleRes.status}`);
         }
+        if (!teamRes.ok) {
+          throw new Error(`team API 오류: ${teamRes.status}`);
+        }
 
         const schedulesJson = await scheduleRes.json();
+        const teamsJson = await teamRes.json();
         const scheduleRows = Array.isArray(schedulesJson) ? schedulesJson : [];
+        const teamRows = Array.isArray(teamsJson) ? teamsJson : [];
+        const teamNameMap = buildTeamNameMap(teamRows);
         let member = null;
 
         if (memberRes.ok) {
@@ -267,9 +313,7 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
         } else {
           const fallbackMemberRes = await fetch(`${API_BASE_URL}/api/member`);
           if (!fallbackMemberRes.ok) {
-            throw new Error(
-              `member API 오류: ${memberRes.status}/${fallbackMemberRes.status}`,
-            );
+            throw new Error(`member API 오류: ${memberRes.status}/${fallbackMemberRes.status}`);
           }
 
           const membersJson = await fallbackMemberRes.json();
@@ -278,14 +322,10 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
         }
 
         if (!member) {
-          throw new Error(
-            `member 테이블에서 '${normalizedUserId}' 사용자를 찾지 못했습니다.`,
-          );
+          throw new Error(`member 테이블에서 '${normalizedUserId}' 사용자를 찾지 못했습니다.`);
         }
 
-        const foundName = String(
-          pick(member, ["Name", "name"]) || normalizedUserId,
-        );
+        const foundName = String(pick(member, ["Name", "name"]) || normalizedUserId);
 
         if (isMounted) {
           setMemberName(foundName);
@@ -295,6 +335,10 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
           userId: normalizedUserId,
           memberName: foundName,
           memberTeam: pick(member, ["Team", "team"]),
+        });
+        console.log("[PlayerScheduleScreen] team map resolved", {
+          teamCount: teamRows.length,
+          teamNameMap,
         });
 
         if (scheduleRows.length === 0) {
@@ -314,10 +358,11 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
           firstMatchedSchedule: matchedSchedules[0]?.row || null,
         });
 
+        const todayStart = startOfDay(new Date()).getTime();
         const normalized = matchedSchedules
-          .map((item) => normalizeSchedule(item.row, item.scheduleContext, member))
+          .map((item) => normalizeSchedule(item.row, item.scheduleContext, member, teamNameMap))
           .filter(Boolean)
-          .filter((item) => item.date.getTime() >= Date.now())
+          .filter((item) => item.date.getTime() >= todayStart)
           .sort((a, b) => a.date.getTime() - b.date.getTime());
 
         if (normalized.length === 0) {
@@ -325,8 +370,9 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
         }
 
         const nearest = normalized[0];
-        const rest = normalized.slice(1, 4).map((item) => ({
+        const rest = normalized.slice(1).map((item) => ({
           dateText: item.dateText,
+          teamName: item.teamName,
           opponent: item.opponent,
           timeText: item.timeText,
         }));
@@ -334,10 +380,19 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
         if (isMounted) {
           setNearestGame(nearest);
           setUpcomingGames(rest);
+          setVisibleUpcomingCount(3);
+          setCalendarEventDateKeys(normalized.map((item) => toDateKey(item.date)));
+          setCalendarMonthDate(startOfMonth(nearest.date));
           setErrorText("");
         }
       } catch (error) {
+        console.error("[PlayerScheduleScreen] load failed", error);
         if (isMounted) {
+          setNearestGame(null);
+          setUpcomingGames([]);
+          setVisibleUpcomingCount(3);
+          setCalendarEventDateKeys([]);
+          setCalendarMonthDate(startOfMonth(new Date()));
           setErrorText(error.message || "일정을 불러오지 못했습니다.");
         }
       } finally {
@@ -354,10 +409,29 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
     };
   }, [normalizedUserId]);
 
-  const selectedDay = useMemo(() => {
-    const day = nearestGame?.date?.getDate?.();
-    return day ? String(day) : "12";
-  }, [nearestGame]);
+  const hasNearestGame = Boolean(nearestGame);
+  const selectedDateKey = useMemo(
+    () => (nearestGame?.date ? toDateKey(nearestGame.date) : null),
+    [nearestGame],
+  );
+  const visibleUpcomingGames = useMemo(
+    () => upcomingGames.slice(0, visibleUpcomingCount),
+    [upcomingGames, visibleUpcomingCount],
+  );
+  const calendarRows = useMemo(
+    () => buildCalendarRows(calendarMonthDate),
+    [calendarMonthDate],
+  );
+  const calendarEventKeySet = useMemo(
+    () => new Set(calendarEventDateKeys),
+    [calendarEventDateKeys],
+  );
+
+  const handleCalendarMonthChange = (offset) => {
+    setCalendarMonthDate((currentMonthDate) =>
+      new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + offset, 1),
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -367,14 +441,9 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>
-            {memberName ? `${memberName}의 일정` : "일정"}
-          </Text>
+          <Text style={styles.pageTitle}>{memberName ? `${memberName}의 일정` : "일정"}</Text>
           {onLogout ? (
-            <TouchableOpacity
-              style={styles.switchUserButton}
-              onPress={onLogout}
-            >
+            <TouchableOpacity style={styles.switchUserButton} onPress={onLogout}>
               <Text style={styles.switchUserText}>사용자 변경</Text>
             </TouchableOpacity>
           ) : null}
@@ -384,9 +453,7 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
 
         <View style={styles.card}>
           <View style={styles.scheduleHeaderRow}>
-            <Text style={[styles.cardTitle, styles.cardTitleNoMargin]}>
-              1. 다음 경기
-            </Text>
+            <Text style={[styles.cardTitle, styles.cardTitleNoMargin]}>1. 다음 경기</Text>
             <TouchableOpacity style={styles.inlineReminderButton}>
               <Text style={styles.inlineReminderText}>알림 설정</Text>
             </TouchableOpacity>
@@ -398,52 +465,58 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
           >
             <View style={styles.gameHeroOverlay} />
             <View style={styles.dateBadge}>
-              <Text style={styles.dateDay}>{nearestGame.date.getDate()}</Text>
+              <Text style={styles.dateDay}>{hasNearestGame ? nearestGame.date.getDate() : "-"}</Text>
               <Text style={styles.dateMonth}>
-                {nearestGame.date.getMonth() + 1}월
+                {hasNearestGame ? `${nearestGame.date.getMonth() + 1}월` : ""}
               </Text>
             </View>
             <View style={styles.metaRowInHero}>
               <Text style={styles.metaChip}>
-                {nearestGame.isHome ? "홈 경기" : "원정 경기"}
+                {hasNearestGame ? (nearestGame.isHome ? "홈 경기" : "원정 경기") : "경기 대기"}
               </Text>
               <Text style={styles.metaTimeInHero}>
-                {nearestGame.timeText} 시작
+                {hasNearestGame ? `${nearestGame.timeText} 시작` : "오늘 이후 일정 대기 중"}
               </Text>
             </View>
           </ImageBackground>
           <Text style={styles.matchTitle}>
-            {nearestGame.teamName} vs {nearestGame.opponent}
+            {hasNearestGame
+              ? `${nearestGame.teamName} vs ${nearestGame.opponent}`
+              : "다가오는 경기 없음"}
           </Text>
-          <Text style={styles.matchSub}>{nearestGame.stadiumName}</Text>
+          <Text style={styles.matchSub}>
+            {hasNearestGame
+              ? nearestGame.stadiumName
+              : "오늘 이후 일정이 업로드되면 여기에 표시됩니다."}
+          </Text>
           <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[styles.secondaryButton, styles.detailButton]}
-            >
+            <TouchableOpacity style={[styles.secondaryButton, styles.detailButton]}>
               <Text style={styles.secondaryText}>경기 상세</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.sectionDivider} />
-          <Text style={styles.subTitle}>경기장 정보</Text>
-          <View style={styles.mapWrap}>
-            <View style={styles.mapInner} />
-          </View>
-          <Text style={styles.stadiumTitle}>{nearestGame.stadiumName}</Text>
-          <Text style={styles.stadiumInfo}>{nearestGame.stadiumAddress}</Text>
-          <TouchableOpacity>
-            <Text style={styles.mapLink}>지도에서 열기</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>2. 캘린더</Text>
           <View style={styles.calendarHeader}>
-            <Text style={styles.calendarMonth}>2024년 9월</Text>
-            <Text style={styles.calendarArrow}>‹ ›</Text>
+            <Text style={styles.calendarMonth}>{formatCalendarMonth(calendarMonthDate)}</Text>
+            <View style={styles.calendarArrowGroup}>
+              <TouchableOpacity
+                style={styles.calendarArrowButton}
+                onPress={() => handleCalendarMonthChange(-1)}
+              >
+                <Text style={styles.calendarArrow}>‹</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.calendarArrowButton}
+                onPress={() => handleCalendarMonthChange(1)}
+              >
+                <Text style={styles.calendarArrow}>›</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.weekHeader}>
-            {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+            {WEEKDAY_LABELS.map((day) => (
               <Text key={day} style={styles.weekDay}>
                 {day}
               </Text>
@@ -451,12 +524,13 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
           </View>
           {calendarRows.map((row, rowIndex) => (
             <View key={`row-${rowIndex}`} style={styles.weekRow}>
-              {row.map((day) => {
-                const isSelected = day === selectedDay;
-                const isEvent = day === selectedDay || day === "4";
-                const isDim = rowIndex === 0;
+              {row.map((cell) => {
+                const isSelected = cell.dateKey === selectedDateKey;
+                const isEvent = calendarEventKeySet.has(cell.dateKey);
+                const isDim = !cell.isCurrentMonth;
+
                 return (
-                  <View key={`${rowIndex}-${day}`} style={styles.dayCell}>
+                  <View key={cell.key} style={styles.dayCell}>
                     <View
                       style={[
                         styles.dayCircle,
@@ -471,7 +545,7 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
                           isSelected && styles.daySelectedText,
                         ]}
                       >
-                        {day}
+                        {cell.label}
                       </Text>
                     </View>
                   </View>
@@ -488,23 +562,30 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
               <ActivityIndicator size="small" color="#4a7c59" />
               <Text style={styles.loadingText}>일정 불러오는 중...</Text>
             </View>
+          ) : upcomingGames.length === 0 ? (
+            <Text style={styles.loadingText}>다가오는 일정이 없습니다.</Text>
           ) : (
-            upcomingGames.map((game) => (
+            visibleUpcomingGames.map((game) => (
               <View
-                key={`${game.dateText}-${game.opponent}`}
+                key={`${game.dateText}-${game.teamName}-${game.opponent}`}
                 style={styles.listItem}
               >
                 <View style={styles.listLeft}>
                   <Text style={styles.listDate}>{game.dateText}</Text>
-                  <Text style={styles.listOpponent}>{game.opponent}</Text>
+                  <Text style={styles.listOpponent}>{`${game.teamName} vs ${game.opponent}`}</Text>
                 </View>
                 <Text style={styles.listTime}>{game.timeText}</Text>
               </View>
             ))
           )}
-          <TouchableOpacity style={styles.moreButton}>
-            <Text style={styles.moreText}>더 보기</Text>
-          </TouchableOpacity>
+          {upcomingGames.length > visibleUpcomingCount ? (
+            <TouchableOpacity
+              style={styles.moreButton}
+              onPress={() => setVisibleUpcomingCount((count) => count + 3)}
+            >
+              <Text style={styles.moreText}>더 보기</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -658,7 +739,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   matchTitle: {
-    fontSize: 24,
+    textAlign: "center",
+    fontSize: 20,
     lineHeight: 29,
     color: "#2e322f",
     fontWeight: "700",
@@ -691,47 +773,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
-  sectionDivider: {
-    height: 1,
-    backgroundColor: "rgba(112, 92, 48, 0.16)",
-    marginTop: 12,
-    marginBottom: 10,
-  },
-  subTitle: {
-    fontSize: 14,
-    color: "#2e322f",
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  mapWrap: {
-    height: 88,
-    borderRadius: 12,
-    padding: 8,
-    backgroundColor: "#d8d4cb",
-    marginBottom: 10,
-  },
-  mapInner: {
-    flex: 1,
-    borderRadius: 10,
-    backgroundColor: "#b7c9b1",
-  },
-  stadiumTitle: {
-    color: "#2e322f",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  stadiumInfo: {
-    color: "#8b857c",
-    fontSize: 11,
-    lineHeight: 17,
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  mapLink: {
-    color: "#4a7c59",
-    fontSize: 11,
-    fontWeight: "700",
-  },
   calendarHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -742,6 +783,15 @@ const styles = StyleSheet.create({
     color: "#2e322f",
     fontSize: 16,
     fontWeight: "700",
+  },
+  calendarArrowGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  calendarArrowButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   calendarArrow: {
     color: "#7b776f",
