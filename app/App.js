@@ -3,6 +3,8 @@ import { useState } from "react";
 import LoginScreen from "./screen/loginScreen";
 import RecorderScreen from "./screen/recorderScreen";
 import HistoryScreen from "./screen/historyScreen";
+import DirectorScreen from "./screen/DirectorScreen";
+import PlayerScreen from "./screen/PlayerScreen";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
@@ -15,6 +17,10 @@ export default function App() {
         <RecorderScreen onNavigate={setCurrentScreen} />
       ) : currentScreen === 'history' ? (
         <HistoryScreen onNavigate={setCurrentScreen} />
+      ) : currentScreen === 'director' ? (
+        <DirectorScreen onNavigate={setCurrentScreen} />
+      ) : currentScreen === 'player' ? (
+        <PlayerScreen onNavigate={setCurrentScreen} />
       ) : null}
     </View>
   );

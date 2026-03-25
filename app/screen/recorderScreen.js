@@ -140,17 +140,33 @@ const RecorderScreen = ({ onNavigate }) => {
     <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>경기 내용</Text>
+        <Text style={styles.subtitle}>파일을 선택하여 분석을 시작하세요</Text>
 
-        <TouchableOpacity style={styles.uploadButton} onPress={handlePickCsv}>
-          <Text style={styles.uploadButtonText}>CSV 업로드</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            style={styles.uploadButton} 
+            onPress={handlePickCsv}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.uploadButtonText}>CSV 업로드</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.historyButton}
-          onPress={() => onNavigate("history")}
-        >
-          <Text style={styles.historyButtonText}>경기 내역 보기</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => onNavigate("history")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.historyButtonText}>경기 내역 보기</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={() => onNavigate("login")}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.logoutButtonText}>로그아웃</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -161,49 +177,90 @@ export default RecorderScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#faf6f0", // Background (Warm cream)
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
   },
   card: {
     width: "100%",
-    maxWidth: 360,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
+    maxWidth: 380,
+    backgroundColor: "#ffffff",
     borderRadius: 12,
-    padding: 16,
-    gap: 50,
+    padding: 24,
+    // Soft Elevation (Shadow)
+    shadowColor: "#2e3230",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 4,
+    alignItems: "stretch",
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     textAlign: "center",
     fontWeight: "700",
-    color: "#111827",
+    color: "#4a7c59", // Primary (Forest green)
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 15,
+    textAlign: "center",
+    color: "#705c30", // Tertiary (Warm amber)
+    marginBottom: 32,
+  },
+  buttonContainer: {
+    gap: 12, // Breathable spacing
   },
   uploadButton: {
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: "#2563eb",
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: "#4a7c59", // Primary (Forest green)
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#4a7c59",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   uploadButtonText: {
     color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
   historyButton: {
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: "#4f46e5",
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: "#705c30", // Tertiary (Warm amber)
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -20,
+    shadowColor: "#705c30",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   },
   historyButtonText: {
     color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  logoutButton: {
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: "#4a7c59",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  logoutButtonText: {
+    color: "#4a7c59",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
