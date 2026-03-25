@@ -1,136 +1,136 @@
+import io
 import os
-import io
-from fastapi import FastAPI, Request, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from supabase import create_client, Client
-from dotenv import load_dotenv
-import pandas as pd
-import io
-import pandas as pd
 
-# .env 파일의 환경 변수 로드
+import pandas as pd
+from dotenv import load_dotenv
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from supabase import Client, create_client
+
 load_dotenv()
 
 app = FastAPI()
 
-# Supabase 설정
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
-# CORS 설정
-origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
+def first_non_empty(mapping, keys):
+    if not isinstance(mapping, dict):
+        return None
+
+    for key_name in keys:
+        value = mapping.get(key_name)
+        if value not in (None, ""):
+            return value
+
+    return None
+
+
 @app.get("/api/hello")
 def read_hello():
-    return {"message": "안녕하세요! Supabase가 준비되었습니다."}
+    return {"message": "Supabase connection is ready."}
 
-# Schedule 데이터 조회 핸들러
-@app.get("/api/schedule") 
-@app.get("/api/schedule") 
-def get_Schedule():
-    # Supabase 테이블 이름
+
+@app.get("/api/schedule")
+def get_schedule():
     response = supabase.table("schedule").select("*").execute()
     return response.data
 
-# Member 데이터 조회 핸들러
-@app.get("/api/member") 
-def get_Member():
-    # Supabase 테이블 이름
+
+@app.get("/api/member")
+def get_member():
     response = supabase.table("member").select("*").execute()
     return response.data
 
-# Game 데이터 조회 핸들러 (최근 20건만 조회하여 로딩 속도 개선)
-@app.get("/api/game") 
-def get_Game():
-    # Supabase 테이블 이름
+
+@app.get("/api/member/{user_id}")
+def get_member_by_user_id(user_id: str):
+    for lookup_column in ("User_ID", "user_id"):
+        response = (
+            supabase.table("member")
+            .select("*")
+            .eq(lookup_column, user_id)
+            .limit(1)
+            .execute()
+        )
+        rows = response.data or []
+        if rows:
+            member = rows[0]
+            return {
+                "user_id": str(first_non_empty(member, ["User_ID", "user_id"]) or user_id),
+                "name": str(first_non_empty(member, ["Name", "name"]) or user_id),
+                "member_id": first_non_empty(member, ["id", "member_id"]),
+                "member": member,
+            }
+
+    raise HTTPException(status_code=404, detail=f"member '{user_id}' not found")
+
+
+@app.get("/api/game")
+def get_game():
     response = supabase.table("game").select("*").execute()
     return response.data
 
-# test 데이터 조회 핸들러
-@app.get("/api/test") 
-def get_Game():
-    # Supabase 테이블 이름
+
+@app.get("/api/test")
+def get_test():
     response = supabase.table("test").select("*").execute()
     return response.data
 
+
 @app.post("/api/testpost")
-async def upload_csv(file: UploadFile = File(...)):
-    print(f"--- [백엔드] 업로드 요청 수신: {file.filename} ---")
+async def upload_test_csv(file: UploadFile = File(...)):
     try:
         content = await file.read()
-        print(f"[백엔드] 파일 읽기 완료 ({len(content)} bytes)")
-        
-        # CSV 시도
-        df = pd.read_csv(io.BytesIO(content), encoding='utf-8')
-        print(f"[백엔드] Pandas 변환 완료 (총 {len(df)}행)")
-        
+        df = pd.read_csv(io.BytesIO(content), encoding="utf-8")
         data = df.to_dict(orient="records")
-        print(f"[백엔드] Supabase에 {len(data)}건 삽입 시도 중...")
-        
         response = supabase.table("test").insert(data).execute()
-        print("[백엔드] Supabase 서버 응답 완료")
-        
-        return {"message": "데이터가 성공적으로 추가되었습니다.", "count": len(data)}
-        
-    except Exception as e:
-        print(f"!!! [백엔드 오류] !!! : {str(e)}")
-        return {"error": str(e)}
- 
+        return {"message": "Data inserted successfully.", "count": len(data), "data": response.data}
+    except Exception as exc:
+        return {"error": str(exc)}
 
-# Game 데이터 조회 핸들러
-@app.get("/") 
-def read_no():
-    return {"message": "no다."}
 
-# 404 예외 처리기 (없는 주소 처리)
+@app.get("/")
+def read_root():
+    return {"message": "noop"}
+
+
 @app.exception_handler(404)
 async def not_found_exception_handler(request: Request, exc: Exception):
-    # request: 클라이언트에서 보낸 요청 정보(URL, 헤더 등)가 담겨있는 객체
-    # exc: 발생한 구체적인 에러(예외) 정보가 담겨있는 객체
-    return JSONResponse(
-        status_code=404,
-        content={"message": "없는 주소입니다"}
-    )
+    return JSONResponse(status_code=404, content={"message": "Not found"})
 
-# CSV 업로드 및 test 테이블 반영 핸들러
+
 @app.post("/upload-csv")
 async def upload_csv(file: UploadFile = File(...)):
     try:
-        # 파일 내용 읽기
         content = await file.read()
-        
-        # CSV 파일 파싱 (한글 인코딩 대응)
+
         try:
-            df = pd.read_csv(io.BytesIO(content), encoding='cp949')
-        except:
-            df = pd.read_csv(io.BytesIO(content), encoding='utf-8')
-        
-        # NaN 값을 None으로 변환 (Supabase 입력 호환성)
+            df = pd.read_csv(io.BytesIO(content), encoding="cp949")
+        except Exception:
+            df = pd.read_csv(io.BytesIO(content), encoding="utf-8")
+
         df = df.where(pd.notnull(df), None)
-        
-        # 데이터를 딕셔너리 리스트 형태로 변환
-        data = df.to_dict(orient='records')
-        
+        data = df.to_dict(orient="records")
+
         if not data:
-            return {"message": "업로드할 데이터가 없습니다."}
+            return {"message": "No rows to upload."}
 
-        # Supabase 'test' 테이블에 데이터 삽입
         response = supabase.table("test").insert(data).execute()
-        
         return {
-            "info": f"'{file.filename}' 파일 업로드 및 {len(data)}건 반영 완료!",
-            "data": response.data
+            "info": f"Uploaded '{file.filename}' with {len(data)} rows.",
+            "data": response.data,
         }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"CSV 처리 중 오류 발생: {str(e)}")
-
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"CSV processing failed: {exc}")

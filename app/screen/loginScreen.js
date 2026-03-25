@@ -5,15 +5,37 @@ import {
   View,
   TouchableOpacity,
 } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 
-const LoginScreen = () => {
+const LoginScreen = ({ onLogin }) => {
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorText, setErrorText] = useState("");
+
+  const handleLogin = () => {
+    const trimmedUserId = userId.trim();
+
+    if (!trimmedUserId) {
+      setErrorText("Please enter an ID.");
+      return;
+    }
+
+    setErrorText("");
+    onLogin?.(trimmedUserId);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.box}>
         <View style={styles.field}>
           <Text style={styles.label}>ID</Text>
-          <TextInput style={styles.textInput} placeholder="Enter ID" />
+          <TextInput
+            style={styles.textInput}
+            placeholder="Enter ID"
+            value={userId}
+            onChangeText={setUserId}
+            autoCapitalize="none"
+          />
         </View>
 
         <View style={styles.field}>
@@ -22,10 +44,14 @@ const LoginScreen = () => {
             style={styles.textInput}
             placeholder="Enter password"
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
           />
         </View>
 
-        <TouchableOpacity style={styles.button}>
+        {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
+
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Confirm</Text>
         </TouchableOpacity>
       </View>
@@ -75,5 +101,9 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  errorText: {
+    color: "#a23d3d",
+    fontSize: 12,
   },
 });
