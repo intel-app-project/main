@@ -5,11 +5,13 @@ import RecorderScreen from "./screen/recorderScreen";
 import HistoryScreen from "./screen/historyScreen";
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('recorder');
+  const [currentScreen, setCurrentScreen] = useState('login');
 
   return (
     <View style={styles.container}>
-      {currentScreen === 'recorder' ? (
+      {currentScreen === 'login' ? (
+        <LoginScreen onNavigate={setCurrentScreen} />
+      ) : currentScreen === 'recorder' ? (
         <RecorderScreen onNavigate={setCurrentScreen} />
       ) : currentScreen === 'history' ? (
         <HistoryScreen onNavigate={setCurrentScreen} />
