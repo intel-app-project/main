@@ -2,6 +2,7 @@
 import {
   ActivityIndicator,
   ImageBackground,
+  Linking,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,13 @@ const API_BASE_URL = "http://172.30.1.19:8000";
 const SCHEDULE_API_ENDPOINT = "/api/schedule";
 const TEAM_API_ENDPOINT = "/api/team";
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+const STADIUM_NAME = "수원KT위즈파크";
+const STADIUM_LINK_URL = "https://www.ktwiz.co.kr/wizpark/location";
+const ATTENDANCE_OPTIONS = [
+  { key: "attending", label: "O", text: "참석", color: "#2f8f4e" },
+  { key: "pending", label: "-", text: "미응답", color: "#8f8f8f" },
+  { key: "absent", label: "X", text: "불참", color: "#c84747" },
+];
 
 const pick = (obj, keys) => {
   for (const key of keys) {
@@ -26,7 +34,8 @@ const pick = (obj, keys) => {
 
 const findMemberByUserId = (members, userId) =>
   members.find(
-    (member) => String(pick(member, ["User_ID", "user_id"]) || "").trim() === userId,
+    (member) =>
+      String(pick(member, ["User_ID", "user_id"]) || "").trim() === userId,
   );
 
 const parseJsonField = (value) => {
@@ -41,23 +50,43 @@ const parseJsonField = (value) => {
   }
 };
 
-const containsUserId = (value, userId) => {
+const getAttendanceValue = (value, memberId) => {
   const parsedValue = parseJsonField(value);
+  const normalizedMemberId = String(memberId ?? "").trim();
+
+  if (!normalizedMemberId) {
+    return null;
+  }
+
+  if (parsedValue === null || parsedValue === undefined) {
+    return null;
+  }
 
   if (Array.isArray(parsedValue)) {
-    return parsedValue.some((item) => containsUserId(item, userId));
+    for (const item of parsedValue) {
+      const nestedValue = getAttendanceValue(item, normalizedMemberId);
+      if (nestedValue !== null) {
+        return nestedValue;
+      }
+    }
+    return null;
   }
 
-  if (parsedValue && typeof parsedValue === "object") {
-    const directUserId = pick(parsedValue, ["User_ID", "user_id", "userid"]);
-    if (String(directUserId || "").trim() === userId) {
-      return true;
+  if (typeof parsedValue === "object") {
+    if (Object.prototype.hasOwnProperty.call(parsedValue, normalizedMemberId)) {
+      const attendanceValue = Number(parsedValue[normalizedMemberId]);
+      return Number.isNaN(attendanceValue) ? null : attendanceValue;
     }
 
-    return Object.values(parsedValue).some((item) => containsUserId(item, userId));
+    for (const nestedValue of Object.values(parsedValue)) {
+      const resolvedValue = getAttendanceValue(nestedValue, normalizedMemberId);
+      if (resolvedValue !== null) {
+        return resolvedValue;
+      }
+    }
   }
 
-  return String(parsedValue || "").trim() === userId;
+  return null;
 };
 
 const toDate = (value) => {
@@ -103,7 +132,8 @@ const toDate = (value) => {
   return null;
 };
 
-const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+const startOfDay = (date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate());
 const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
 
 const toDateKey = (date) =>
@@ -114,7 +144,8 @@ const toDateKey = (date) =>
   ].join("-");
 
 const formatDateText = (date) => `${date.getMonth() + 1}월 ${date.getDate()}일`;
-const formatCalendarMonth = (date) => `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+const formatCalendarMonth = (date) =>
+  `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
 
 const formatTimeText = (date) => {
   const hour = date.getHours();
@@ -183,13 +214,57 @@ const resolveTeamName = (teamNameMap, teamId, fallbackLabel) => {
   return formatTeamLabel(teamId, fallbackLabel);
 };
 
-const matchScheduleForUser = (row, member, userId) => {
+const getAttendanceStatus = (attendanceValue) => {
+  if (attendanceValue === 1) {
+    return "attending";
+  }
+
+  if (attendanceValue === 0) {
+    return "absent";
+  }
+
+  return "pending";
+};
+
+const getAttendanceOption = (status) =>
+  ATTENDANCE_OPTIONS.find((option) => option.key === status) ||
+  ATTENDANCE_OPTIONS[1];
+
+const getGameKey = (game) =>
+  `${game.scheduleId ?? game.scheduleDate}-${game.teamName}-${game.opponent}`;
+
+const getAttendanceBadgePalette = (status) => {
+  const option = getAttendanceOption(status);
+
+  return {
+    option,
+    backgroundColor: `${option.color}18`,
+    borderColor: `${option.color}55`,
+  };
+};
+
+const mergeAttendanceStatus = (currentStatus, nextStatus) => {
+  const priority = {
+    attending: 3,
+    absent: 2,
+    pending: 1,
+  };
+
+  return priority[nextStatus] > priority[currentStatus]
+    ? nextStatus
+    : currentStatus;
+};
+
+const isActiveSchedule = (row) => !pick(row, ["deleted_at", "deletedAt"]);
+
+const matchScheduleForUser = (row, member) => {
   const homeTeamId = pick(row, ["home", "home_team"]);
   const awayTeamId = pick(row, ["away", "away_team"]);
   const memberTeamId = pick(member, ["Team", "team"]);
-
-  const inHomeMembers = containsUserId(row?.home_member, userId);
-  const inAwayMembers = containsUserId(row?.away_member, userId);
+  const memberId = pick(member, ["Id", "id"]);
+  const homeAttendance = getAttendanceValue(row?.home_member, memberId);
+  const awayAttendance = getAttendanceValue(row?.away_member, memberId);
+  const hasAttendanceInfo = homeAttendance !== null || awayAttendance !== null;
   const matchByHomeTeam =
     memberTeamId !== null &&
     memberTeamId !== undefined &&
@@ -198,12 +273,20 @@ const matchScheduleForUser = (row, member, userId) => {
     memberTeamId !== null &&
     memberTeamId !== undefined &&
     String(awayTeamId || "") === String(memberTeamId);
+  const isHome =
+    matchByHomeTeam || (!matchByAwayTeam && homeAttendance !== null);
+  const attendanceSide = isHome ? "home" : "away";
+  const attendanceValue = isHome ? homeAttendance : awayAttendance;
 
   return {
-    matched: inHomeMembers || inAwayMembers || matchByHomeTeam || matchByAwayTeam,
-    isHome: inHomeMembers || (!inAwayMembers && matchByHomeTeam),
+    matched: matchByHomeTeam || matchByAwayTeam || hasAttendanceInfo,
+    isHome,
     homeTeamId,
     awayTeamId,
+    homeAttendance,
+    awayAttendance,
+    attendanceSide,
+    attendanceValue,
   };
 };
 
@@ -219,16 +302,20 @@ const normalizeSchedule = (row, scheduleContext, member, teamNameMap) => {
   const date = toDate(dateValue);
   if (!date) return null;
 
-  const homeTeamId = scheduleContext?.homeTeamId ?? pick(row, ["home", "home_team"]);
-  const awayTeamId = scheduleContext?.awayTeamId ?? pick(row, ["away", "away_team"]);
+  const homeTeamId =
+    scheduleContext?.homeTeamId ?? pick(row, ["home", "home_team"]);
+  const awayTeamId =
+    scheduleContext?.awayTeamId ?? pick(row, ["away", "away_team"]);
   const isHome = Boolean(scheduleContext?.isHome);
   const memberTeamId = pick(member, ["Team", "team"]);
-  const myTeamId = isHome ? homeTeamId : awayTeamId ?? memberTeamId;
+  const myTeamId = isHome ? homeTeamId : (awayTeamId ?? memberTeamId);
   const opponentTeamId = isHome ? awayTeamId : homeTeamId;
 
   const teamName =
-    pick(row, isHome ? ["home_name", "team_name"] : ["away_name", "team_name"]) ||
-    resolveTeamName(teamNameMap, myTeamId, "우리 팀");
+    pick(
+      row,
+      isHome ? ["home_name", "team_name"] : ["away_name", "team_name"],
+    ) || resolveTeamName(teamNameMap, myTeamId, "우리 팀");
   const opponent =
     pick(
       row,
@@ -236,34 +323,105 @@ const normalizeSchedule = (row, scheduleContext, member, teamNameMap) => {
         ? ["away_name", "opponent", "opponent_team", "away_team"]
         : ["home_name", "opponent", "opponent_team", "home_team"],
     ) || resolveTeamName(teamNameMap, opponentTeamId, "상대팀 미정");
-  const stadiumName =
-    pick(row, ["stadium", "stadium_name", "venue", "location"]) || "경기장 정보 없음";
-  const stadiumAddress =
-    pick(row, ["stadium_address", "venue_address", "address", "location_detail"]) ||
-    "주소 정보 없음";
+  const stadiumName = STADIUM_NAME;
 
   return {
+    scheduleId: pick(row, ["id", "Id"]),
+    scheduleDate: String(pick(row, ["date", "game_date", "match_date"]) || ""),
     date,
     opponent,
     teamName,
     stadiumName,
-    stadiumAddress,
     isHome,
+    attendanceSide:
+      scheduleContext?.attendanceSide || (isHome ? "home" : "away"),
+    attendanceStatus: getAttendanceStatus(scheduleContext?.attendanceValue),
     dateText: formatDateText(date),
     timeText: formatTimeText(date),
   };
 };
 
-const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
+const summarizeUpcomingGame = (item) => ({
+  scheduleId: item.scheduleId,
+  scheduleDate: item.scheduleDate,
+  dateText: item.dateText,
+  teamName: item.teamName,
+  opponent: item.opponent,
+  timeText: item.timeText,
+  attendanceStatus: item.attendanceStatus,
+  attendanceSide: item.attendanceSide,
+});
+
+const buildCalendarAttendanceMap = (games) =>
+  games.reduce((result, item) => {
+    const dateKey = toDateKey(item.date);
+    const currentStatus = result[dateKey] || "pending";
+    result[dateKey] = mergeAttendanceStatus(
+      currentStatus,
+      item.attendanceStatus,
+    );
+    return result;
+  }, {});
+
+const buildNormalizedSchedules = (scheduleRows, member, teamNameMap) => {
+  const todayStart = startOfDay(new Date()).getTime();
+
+  return scheduleRows
+    .filter(isActiveSchedule)
+    .map((row) => ({
+      row,
+      scheduleContext: matchScheduleForUser(row, member),
+    }))
+    .filter((item) => item.scheduleContext.matched)
+    .map((item) =>
+      normalizeSchedule(item.row, item.scheduleContext, member, teamNameMap),
+    )
+    .filter(Boolean)
+    .filter((item) => item.date.getTime() >= todayStart)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+};
+
+const resolveMember = async (memberRes, normalizedUserId) => {
+  if (memberRes.ok) {
+    const memberJson = await memberRes.json();
+    return memberJson?.member || memberJson;
+  }
+
+  const fallbackMemberRes = await fetch(`${API_BASE_URL}/api/member`);
+  if (!fallbackMemberRes.ok) {
+    throw new Error(
+      `member API 오류: ${memberRes.status}/${fallbackMemberRes.status}`,
+    );
+  }
+
+  const membersJson = await fallbackMemberRes.json();
+  const members = Array.isArray(membersJson) ? membersJson : [];
+  return findMemberByUserId(members, normalizedUserId) || null;
+};
+
+const PlayerScheduleScreen = ({ loginUserId, onLogout, onOpenGameDetail }) => {
   const normalizedUserId = String(loginUserId || "").trim();
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [memberName, setMemberName] = useState("");
+  const [memberId, setMemberId] = useState(null);
   const [nearestGame, setNearestGame] = useState(null);
   const [upcomingGames, setUpcomingGames] = useState([]);
   const [visibleUpcomingCount, setVisibleUpcomingCount] = useState(3);
-  const [calendarMonthDate, setCalendarMonthDate] = useState(startOfMonth(new Date()));
-  const [calendarEventDateKeys, setCalendarEventDateKeys] = useState([]);
+  const [calendarMonthDate, setCalendarMonthDate] = useState(
+    startOfMonth(new Date()),
+  );
+  const [calendarAttendanceMap, setCalendarAttendanceMap] = useState({});
+  const [openedAttendanceKey, setOpenedAttendanceKey] = useState(null);
+  const [savingAttendanceKey, setSavingAttendanceKey] = useState(null);
+  const resetScheduleState = () => {
+    setNearestGame(null);
+    setUpcomingGames([]);
+    setVisibleUpcomingCount(3);
+    setCalendarAttendanceMap({});
+    setCalendarMonthDate(startOfMonth(new Date()));
+    setOpenedAttendanceKey(null);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -280,15 +438,13 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
       try {
         if (isMounted) {
           setLoading(true);
-          setNearestGame(null);
-          setUpcomingGames([]);
-          setVisibleUpcomingCount(3);
-          setCalendarEventDateKeys([]);
-          setCalendarMonthDate(startOfMonth(new Date()));
+          resetScheduleState();
         }
 
         const [memberRes, scheduleRes, teamRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/member/${encodeURIComponent(normalizedUserId)}`),
+          fetch(
+            `${API_BASE_URL}/api/member/${encodeURIComponent(normalizedUserId)}`,
+          ),
           fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`),
           fetch(`${API_BASE_URL}${TEAM_API_ENDPOINT}`),
         ]);
@@ -305,94 +461,54 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
         const scheduleRows = Array.isArray(schedulesJson) ? schedulesJson : [];
         const teamRows = Array.isArray(teamsJson) ? teamsJson : [];
         const teamNameMap = buildTeamNameMap(teamRows);
-        let member = null;
-
-        if (memberRes.ok) {
-          const memberJson = await memberRes.json();
-          member = memberJson?.member || memberJson;
-        } else {
-          const fallbackMemberRes = await fetch(`${API_BASE_URL}/api/member`);
-          if (!fallbackMemberRes.ok) {
-            throw new Error(`member API 오류: ${memberRes.status}/${fallbackMemberRes.status}`);
-          }
-
-          const membersJson = await fallbackMemberRes.json();
-          const members = Array.isArray(membersJson) ? membersJson : [];
-          member = findMemberByUserId(members, normalizedUserId) || null;
-        }
+        const member = await resolveMember(memberRes, normalizedUserId);
 
         if (!member) {
-          throw new Error(`member 테이블에서 '${normalizedUserId}' 사용자를 찾지 못했습니다.`);
+          throw new Error(
+            `member 테이블에서 '${normalizedUserId}' 사용자를 찾지 못했습니다.`,
+          );
         }
 
-        const foundName = String(pick(member, ["Name", "name"]) || normalizedUserId);
+        const foundName = String(
+          pick(member, ["Name", "name"]) || normalizedUserId,
+        );
+        const foundMemberId = pick(member, ["Id", "id"]);
 
         if (isMounted) {
           setMemberName(foundName);
+          setMemberId(foundMemberId);
         }
-
-        console.log("[PlayerScheduleScreen] member resolved", {
-          userId: normalizedUserId,
-          memberName: foundName,
-          memberTeam: pick(member, ["Team", "team"]),
-        });
-        console.log("[PlayerScheduleScreen] team map resolved", {
-          teamCount: teamRows.length,
-          teamNameMap,
-        });
 
         if (scheduleRows.length === 0) {
           throw new Error("schedule 데이터가 비어 있습니다.");
         }
 
-        const matchedSchedules = scheduleRows
-          .map((row) => ({
-            row,
-            scheduleContext: matchScheduleForUser(row, member, normalizedUserId),
-          }))
-          .filter((item) => item.scheduleContext.matched);
-
-        console.log("[PlayerScheduleScreen] matched schedules", {
-          totalSchedules: scheduleRows.length,
-          matchedSchedules: matchedSchedules.length,
-          firstMatchedSchedule: matchedSchedules[0]?.row || null,
-        });
-
-        const todayStart = startOfDay(new Date()).getTime();
-        const normalized = matchedSchedules
-          .map((item) => normalizeSchedule(item.row, item.scheduleContext, member, teamNameMap))
-          .filter(Boolean)
-          .filter((item) => item.date.getTime() >= todayStart)
-          .sort((a, b) => a.date.getTime() - b.date.getTime());
+        const normalized = buildNormalizedSchedules(
+          scheduleRows,
+          member,
+          teamNameMap,
+        );
 
         if (normalized.length === 0) {
           throw new Error("해당 사용자의 다가오는 일정 데이터가 없습니다.");
         }
 
         const nearest = normalized[0];
-        const rest = normalized.slice(1).map((item) => ({
-          dateText: item.dateText,
-          teamName: item.teamName,
-          opponent: item.opponent,
-          timeText: item.timeText,
-        }));
+        const rest = normalized.slice(1).map(summarizeUpcomingGame);
+        const nextCalendarAttendanceMap = buildCalendarAttendanceMap(normalized);
 
         if (isMounted) {
           setNearestGame(nearest);
           setUpcomingGames(rest);
           setVisibleUpcomingCount(3);
-          setCalendarEventDateKeys(normalized.map((item) => toDateKey(item.date)));
+          setCalendarAttendanceMap(nextCalendarAttendanceMap);
           setCalendarMonthDate(startOfMonth(nearest.date));
           setErrorText("");
         }
       } catch (error) {
         console.error("[PlayerScheduleScreen] load failed", error);
         if (isMounted) {
-          setNearestGame(null);
-          setUpcomingGames([]);
-          setVisibleUpcomingCount(3);
-          setCalendarEventDateKeys([]);
-          setCalendarMonthDate(startOfMonth(new Date()));
+          resetScheduleState();
           setErrorText(error.message || "일정을 불러오지 못했습니다.");
         }
       } finally {
@@ -410,10 +526,8 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
   }, [normalizedUserId]);
 
   const hasNearestGame = Boolean(nearestGame);
-  const selectedDateKey = useMemo(
-    () => (nearestGame?.date ? toDateKey(nearestGame.date) : null),
-    [nearestGame],
-  );
+  const selectedDateKey = nearestGame?.date ? toDateKey(nearestGame.date) : null;
+  const todayDateKey = toDateKey(new Date());
   const visibleUpcomingGames = useMemo(
     () => upcomingGames.slice(0, visibleUpcomingCount),
     [upcomingGames, visibleUpcomingCount],
@@ -422,14 +536,205 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
     () => buildCalendarRows(calendarMonthDate),
     [calendarMonthDate],
   );
-  const calendarEventKeySet = useMemo(
-    () => new Set(calendarEventDateKeys),
-    [calendarEventDateKeys],
-  );
 
   const handleCalendarMonthChange = (offset) => {
-    setCalendarMonthDate((currentMonthDate) =>
-      new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + offset, 1),
+    setCalendarMonthDate(
+      (currentMonthDate) =>
+        new Date(
+          currentMonthDate.getFullYear(),
+          currentMonthDate.getMonth() + offset,
+          1,
+        ),
+    );
+  };
+
+  const handleResetCalendarMonth = () => {
+    setCalendarMonthDate(startOfMonth(new Date()));
+  };
+
+  const handleOpenStadiumLink = async () => {
+    try {
+      await Linking.openURL(STADIUM_LINK_URL);
+    } catch (error) {
+      console.error(
+        "[PlayerScheduleScreen] failed to open stadium link",
+        error,
+      );
+    }
+  };
+
+  const updateUpcomingGameStatus = (gameKey, nextStatus) => {
+    setUpcomingGames((currentGames) =>
+      currentGames.map((game) =>
+        getGameKey(game) === gameKey
+          ? { ...game, attendanceStatus: nextStatus }
+          : game,
+      ),
+    );
+  };
+
+  const updateCalendarStatus = (scheduleDate, nextStatus) => {
+    const targetDate = toDate(scheduleDate);
+    if (!targetDate) {
+      return;
+    }
+
+    const targetDateKey = toDateKey(targetDate);
+
+    setCalendarAttendanceMap((currentMap) => ({
+      ...currentMap,
+      [targetDateKey]: nextStatus,
+    }));
+  };
+
+  const handleSelectAttendance = async (game, nextStatus) => {
+    if (!memberId) {
+      setErrorText("member Id를 찾지 못해 참석 여부를 저장할 수 없습니다.");
+      return;
+    }
+
+    const gameKey = getGameKey(game);
+
+    try {
+      setSavingAttendanceKey(gameKey);
+      setErrorText("");
+
+      const response = await fetch(`${API_BASE_URL}/api/schedule/attendance`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          schedule_id: game.scheduleId ?? null,
+          schedule_date: game.scheduleDate || null,
+          member_id: memberId,
+          side: game.attendanceSide,
+          status: nextStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`attendance API 오류: ${response.status}`);
+      }
+
+      updateUpcomingGameStatus(gameKey, nextStatus);
+      updateCalendarStatus(game.scheduleDate, nextStatus);
+      setOpenedAttendanceKey(null);
+    } catch (error) {
+      console.error("[PlayerScheduleScreen] attendance update failed", error);
+      setErrorText(error.message || "참석 여부를 저장하지 못했습니다.");
+    } finally {
+      setSavingAttendanceKey(null);
+    }
+  };
+
+  const renderAttendanceOptions = (game) => (
+    <View style={styles.attendanceOptionRow}>
+      {ATTENDANCE_OPTIONS.map((option) => (
+        <TouchableOpacity
+          key={option.key}
+          style={[
+            styles.attendanceOptionButton,
+            game.attendanceStatus === option.key &&
+              styles.attendanceOptionButtonSelected,
+          ]}
+          onPress={() => handleSelectAttendance(game, option.key)}
+          disabled={savingAttendanceKey === getGameKey(game)}
+        >
+          <Text style={[styles.attendanceOptionIcon, { color: option.color }]}>
+            {option.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const renderUpcomingGameItem = (game) => {
+    const gameKey = getGameKey(game);
+    const isAttendanceOpen = openedAttendanceKey === gameKey;
+    const isSaving = savingAttendanceKey === gameKey;
+    const attendancePalette = getAttendanceBadgePalette(game.attendanceStatus);
+
+    return (
+      <View key={gameKey} style={styles.listItem}>
+        <View style={styles.listLeft}>
+          <Text style={styles.listDate}>{game.dateText}</Text>
+          <Text
+            style={styles.listOpponent}
+          >{`${game.teamName} vs ${game.opponent}`}</Text>
+        </View>
+        <View style={styles.listRight}>
+          <Text style={styles.listTime}>{game.timeText}</Text>
+          <View style={styles.attendanceWrap}>
+            <TouchableOpacity
+              style={[
+                styles.attendanceBadge,
+                {
+                  backgroundColor: attendancePalette.backgroundColor,
+                  borderColor: attendancePalette.borderColor,
+                },
+              ]}
+              onPress={() =>
+                setOpenedAttendanceKey((currentKey) =>
+                  currentKey === gameKey ? null : gameKey,
+                )
+              }
+            >
+              <Text
+                style={[
+                  styles.attendanceBadgeIcon,
+                  { color: attendancePalette.option.color },
+                ]}
+              >
+                {attendancePalette.option.label}
+              </Text>
+              <Text
+                style={[
+                  styles.attendanceBadgeText,
+                  { color: attendancePalette.option.color },
+                ]}
+              >
+                {attendancePalette.option.text}
+              </Text>
+            </TouchableOpacity>
+            {isAttendanceOpen ? renderAttendanceOptions(game) : null}
+          </View>
+          {isSaving ? <Text style={styles.savingText}>저장 중</Text> : null}
+        </View>
+      </View>
+    );
+  };
+
+  const renderCalendarCell = (cell) => {
+    const isSelected = cell.dateKey === selectedDateKey;
+    const isToday = cell.dateKey === todayDateKey;
+    const attendanceStatus = calendarAttendanceMap[cell.dateKey] || null;
+    const isDim = !cell.isCurrentMonth;
+
+    return (
+      <View key={cell.key} style={styles.dayCell}>
+        <View
+          style={[
+            styles.dayCircle,
+            attendanceStatus && styles.dayEvent,
+            attendanceStatus === "attending" && styles.dayEventAttending,
+            attendanceStatus === "pending" && styles.dayEventPending,
+            attendanceStatus === "absent" && styles.dayEventAbsent,
+            isSelected && !isToday && styles.daySelected,
+            isToday && styles.dayToday,
+          ]}
+        >
+          <Text
+            style={[
+              styles.dayText,
+              isDim && styles.dayDim,
+              isSelected && !isToday && styles.daySelectedText,
+            ]}
+          >
+            {cell.label}
+          </Text>
+        </View>
+      </View>
     );
   };
 
@@ -441,9 +746,14 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>{memberName ? `${memberName}의 일정` : "일정"}</Text>
+          <Text style={styles.pageTitle}>
+            {memberName ? `${memberName}의 일정` : "일정"}
+          </Text>
           {onLogout ? (
-            <TouchableOpacity style={styles.switchUserButton} onPress={onLogout}>
+            <TouchableOpacity
+              style={styles.switchUserButton}
+              onPress={onLogout}
+            >
               <Text style={styles.switchUserText}>사용자 변경</Text>
             </TouchableOpacity>
           ) : null}
@@ -452,12 +762,7 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
         {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
 
         <View style={styles.card}>
-          <View style={styles.scheduleHeaderRow}>
-            <Text style={[styles.cardTitle, styles.cardTitleNoMargin]}>1. 다음 경기</Text>
-            <TouchableOpacity style={styles.inlineReminderButton}>
-              <Text style={styles.inlineReminderText}>알림 설정</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={[styles.cardTitle]}>이번 경기</Text>
           <ImageBackground
             source={require("../assets/baseballStadium.jpg")}
             style={styles.gameHero}
@@ -465,17 +770,25 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
           >
             <View style={styles.gameHeroOverlay} />
             <View style={styles.dateBadge}>
-              <Text style={styles.dateDay}>{hasNearestGame ? nearestGame.date.getDate() : "-"}</Text>
+              <Text style={styles.dateDay}>
+                {hasNearestGame ? nearestGame.date.getDate() : "-"}
+              </Text>
               <Text style={styles.dateMonth}>
                 {hasNearestGame ? `${nearestGame.date.getMonth() + 1}월` : ""}
               </Text>
             </View>
             <View style={styles.metaRowInHero}>
               <Text style={styles.metaChip}>
-                {hasNearestGame ? (nearestGame.isHome ? "홈 경기" : "원정 경기") : "경기 대기"}
+                {hasNearestGame
+                  ? nearestGame.isHome
+                    ? "홈 경기"
+                    : "원정 경기"
+                  : "경기 대기"}
               </Text>
               <Text style={styles.metaTimeInHero}>
-                {hasNearestGame ? `${nearestGame.timeText} 시작` : "오늘 이후 일정 대기 중"}
+                {hasNearestGame
+                  ? `${nearestGame.timeText} 시작`
+                  : "오늘 이후 일정 대기 중"}
               </Text>
             </View>
           </ImageBackground>
@@ -484,32 +797,55 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
               ? `${nearestGame.teamName} vs ${nearestGame.opponent}`
               : "다가오는 경기 없음"}
           </Text>
-          <Text style={styles.matchSub}>
-            {hasNearestGame
-              ? nearestGame.stadiumName
-              : "오늘 이후 일정이 업로드되면 여기에 표시됩니다."}
-          </Text>
+          {hasNearestGame ? (
+            <TouchableOpacity
+              onPress={handleOpenStadiumLink}
+              style={styles.matchSubButton}
+            >
+              <Text style={[styles.matchSub, styles.matchSubLink]}>
+                {nearestGame.stadiumName}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.matchSub}>
+              오늘 이후 일정이 업로드되면 여기에 표시됩니다.
+            </Text>
+          )}
           <View style={styles.actionRow}>
-            <TouchableOpacity style={[styles.secondaryButton, styles.detailButton]}>
-              <Text style={styles.secondaryText}>경기 상세</Text>
+            <TouchableOpacity
+              style={[styles.secondaryButton, styles.detailButton]}
+              onPress={onOpenGameDetail}
+            >
+              <Text style={[styles.secondaryText, styles.detailButtonText]}>
+                경기 상세
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>2. 캘린더</Text>
           <View style={styles.calendarHeader}>
-            <Text style={styles.calendarMonth}>{formatCalendarMonth(calendarMonthDate)}</Text>
             <View style={styles.calendarArrowGroup}>
               <TouchableOpacity
                 style={styles.calendarArrowButton}
                 onPress={() => handleCalendarMonthChange(-1)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={styles.calendarArrow}>‹</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={styles.calendarMonthButton}
+                onPress={handleResetCalendarMonth}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.calendarMonth}>
+                  {formatCalendarMonth(calendarMonthDate)}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.calendarArrowButton}
                 onPress={() => handleCalendarMonthChange(1)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={styles.calendarArrow}>›</Text>
               </TouchableOpacity>
@@ -524,39 +860,13 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
           </View>
           {calendarRows.map((row, rowIndex) => (
             <View key={`row-${rowIndex}`} style={styles.weekRow}>
-              {row.map((cell) => {
-                const isSelected = cell.dateKey === selectedDateKey;
-                const isEvent = calendarEventKeySet.has(cell.dateKey);
-                const isDim = !cell.isCurrentMonth;
-
-                return (
-                  <View key={cell.key} style={styles.dayCell}>
-                    <View
-                      style={[
-                        styles.dayCircle,
-                        isEvent && styles.dayEvent,
-                        isSelected && styles.daySelected,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          isDim && styles.dayDim,
-                          isSelected && styles.daySelectedText,
-                        ]}
-                      >
-                        {cell.label}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
+              {row.map(renderCalendarCell)}
             </View>
           ))}
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>3. 이후 경기 일정</Text>
+          <Text style={styles.cardTitle}>다음 경기 일정</Text>
           {loading ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator size="small" color="#4a7c59" />
@@ -565,18 +875,7 @@ const PlayerScheduleScreen = ({ loginUserId, onLogout }) => {
           ) : upcomingGames.length === 0 ? (
             <Text style={styles.loadingText}>다가오는 일정이 없습니다.</Text>
           ) : (
-            visibleUpcomingGames.map((game) => (
-              <View
-                key={`${game.dateText}-${game.teamName}-${game.opponent}`}
-                style={styles.listItem}
-              >
-                <View style={styles.listLeft}>
-                  <Text style={styles.listDate}>{game.dateText}</Text>
-                  <Text style={styles.listOpponent}>{`${game.teamName} vs ${game.opponent}`}</Text>
-                </View>
-                <Text style={styles.listTime}>{game.timeText}</Text>
-              </View>
-            ))
+            visibleUpcomingGames.map(renderUpcomingGameItem)
           )}
           {upcomingGames.length > visibleUpcomingCount ? (
             <TouchableOpacity
@@ -651,32 +950,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 24,
     color: "#2e322f",
     fontWeight: "700",
-    marginBottom: 10,
-  },
-  cardTitleNoMargin: {
-    marginBottom: 0,
-  },
-  scheduleHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  inlineReminderButton: {
-    backgroundColor: "#fdf9f3",
-    borderWidth: 1,
-    borderColor: "#b7c8b0",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  inlineReminderText: {
-    color: "#4a7c59",
-    fontSize: 11,
-    fontWeight: "700",
+    marginBottom: 20,
   },
   gameHero: {
     height: 132,
@@ -751,6 +1028,15 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 12,
     lineHeight: 18,
+    textAlign: "right",
+  },
+  matchSubButton: {
+    width: "100%",
+    alignItems: "flex-end",
+  },
+  matchSubLink: {
+    color: "#2f6f4f",
+    textDecorationLine: "underline",
   },
   actionRow: {
     flexDirection: "row",
@@ -773,29 +1059,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
+  detailButtonText: {
+    fontSize: 16,
+  },
   calendarHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 16,
   },
   calendarMonth: {
     color: "#2e322f",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
+    minWidth: 110,
+    textAlign: "center",
+  },
+  calendarMonthButton: {
+    minHeight: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fdf9f3",
+    borderWidth: 1,
+    borderColor: "#d4ccc0",
   },
   calendarArrowGroup: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 8,
   },
   calendarArrowButton: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fdf9f3",
+    borderWidth: 1,
+    borderColor: "#d4ccc0",
   },
   calendarArrow: {
     color: "#7b776f",
-    fontSize: 16,
+    fontSize: 26,
     fontWeight: "700",
   },
   weekHeader: {
@@ -805,7 +1112,7 @@ const styles = StyleSheet.create({
   weekDay: {
     width: `${100 / 7}%`,
     textAlign: "center",
-    fontSize: 10,
+    fontSize: 14,
     color: "#99948d",
     fontWeight: "700",
   },
@@ -827,11 +1134,24 @@ const styles = StyleSheet.create({
   dayEvent: {
     backgroundColor: "#e4ecd9",
   },
+  dayEventAttending: {
+    backgroundColor: "#d9f1df",
+  },
+  dayEventPending: {
+    backgroundColor: "#ebebeb",
+  },
+  dayEventAbsent: {
+    backgroundColor: "#f4dada",
+  },
   daySelected: {
     backgroundColor: "#9ebd8d",
   },
+  dayToday: {
+    borderWidth: 1,
+    borderColor: "#a9a39a",
+  },
   dayText: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: "700",
     color: "#3a3f3b",
   },
@@ -864,19 +1184,74 @@ const styles = StyleSheet.create({
   },
   listDate: {
     color: "#9f988f",
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: "700",
     marginBottom: 3,
   },
   listOpponent: {
     color: "#2f3431",
-    fontSize: 13,
+    fontSize: 17,
     fontWeight: "700",
   },
   listTime: {
     color: "#8f887e",
-    fontSize: 11,
+    fontSize: 15,
     marginLeft: 8,
+  },
+  listRight: {
+    alignItems: "flex-end",
+    marginLeft: 8,
+  },
+  attendanceWrap: {
+    marginTop: 8,
+    alignItems: "flex-end",
+    gap: 6,
+  },
+  attendanceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  attendanceBadgeIcon: {
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  attendanceBadgeText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  attendanceOptionRow: {
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "flex-end",
+  },
+  attendanceOptionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fdf9f3",
+    borderWidth: 1,
+    borderColor: "#ddd5c8",
+  },
+  attendanceOptionButtonSelected: {
+    borderColor: "#7a9a74",
+    backgroundColor: "#eef5e7",
+  },
+  attendanceOptionIcon: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  savingText: {
+    marginTop: 6,
+    color: "#9f988f",
+    fontSize: 14,
+    fontWeight: "700",
   },
   moreButton: {
     marginTop: 12,

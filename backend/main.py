@@ -5,6 +5,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from supabase import Client, create_client
 
@@ -37,6 +38,34 @@ def first_non_empty(mapping, keys):
     return None
 
 
+def parse_json_object(value):
+    if value is None:
+        return {}
+
+    if isinstance(value, dict):
+        return dict(value)
+
+    if isinstance(value, str):
+        import json
+
+        try:
+            parsed_value = json.loads(value)
+            if isinstance(parsed_value, dict):
+                return parsed_value
+        except Exception:
+            return {}
+
+    return {}
+
+
+class AttendanceUpdatePayload(BaseModel):
+    schedule_id: int | None = None
+    schedule_date: str | None = None
+    member_id: int
+    side: str
+    status: str
+
+
 @app.get("/api/hello")
 def read_hello():
     return {"message": "Supabase connection is ready."}
@@ -58,6 +87,82 @@ def get_member():
 def get_team():
     response = supabase.table("team").select("*").execute()
     return response.data
+
+
+@app.get("/api/member/{user_id}")
+def get_member_by_user_id(user_id: str):
+    response = supabase.table("member").select("*").eq("User_ID", user_id).limit(1).execute()
+    member = response.data[0] if response.data else None
+
+    if not member:
+        raise HTTPException(status_code=404, detail=f"member not found: {user_id}")
+
+    return {
+        "user_id": user_id,
+        "name": first_non_empty(member, ["Name", "name"]),
+        "member_id": first_non_empty(member, ["Id", "id"]),
+        "member": member,
+    }
+
+
+@app.patch("/api/schedule/attendance")
+def update_schedule_attendance(payload: AttendanceUpdatePayload):
+    normalized_side = payload.side.lower().strip()
+    normalized_status = payload.status.lower().strip()
+
+    if normalized_side not in {"home", "away"}:
+        raise HTTPException(status_code=400, detail="side must be 'home' or 'away'")
+
+    if normalized_status not in {"attending", "pending", "absent"}:
+        raise HTTPException(
+            status_code=400,
+            detail="status must be one of: attending, pending, absent",
+        )
+
+    query = supabase.table("schedule").select("*")
+    if payload.schedule_id is not None:
+        query = query.eq("id", payload.schedule_id)
+    elif payload.schedule_date:
+        query = query.eq("date", payload.schedule_date)
+    else:
+        raise HTTPException(status_code=400, detail="schedule_id or schedule_date is required")
+
+    response = query.limit(1).execute()
+    schedule = response.data[0] if response.data else None
+
+    if not schedule:
+        raise HTTPException(status_code=404, detail="schedule not found")
+
+    member_column = "home_member" if normalized_side == "home" else "away_member"
+    member_map = parse_json_object(schedule.get(member_column))
+    member_id_key = str(payload.member_id)
+
+    if normalized_status == "attending":
+        member_map[member_id_key] = 1
+    elif normalized_status == "absent":
+        member_map[member_id_key] = 0
+    else:
+        member_map.pop(member_id_key, None)
+
+    update_query = supabase.table("schedule").update({member_column: member_map})
+    if payload.schedule_id is not None:
+        update_query = update_query.eq("id", payload.schedule_id)
+    else:
+        update_query = update_query.eq("date", payload.schedule_date)
+
+    update_response = update_query.execute()
+    updated_schedule = update_response.data[0] if update_response.data else None
+
+    return {
+        "schedule_id": payload.schedule_id,
+        "schedule_date": payload.schedule_date,
+        "member_id": payload.member_id,
+        "side": normalized_side,
+        "status": normalized_status,
+        "member_column": member_column,
+        "member_value": member_map.get(member_id_key, None),
+        "schedule": updated_schedule,
+    }
 
 @app.get("/api/game")
 def get_game():
