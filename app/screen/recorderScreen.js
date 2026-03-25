@@ -150,8 +150,14 @@ const RecorderScreen = ({ onNavigate }) => {
           >
             <Text style={styles.uploadButtonText}>CSV 업로드</Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.scheduleButton} 
+            onPress={() => onNavigate("managerSchedule")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.scheduleButtonText}>경기 일정 관리</Text>
+          </TouchableOpacity>
 
-<<<<<<< HEAD
           <TouchableOpacity
             style={styles.historyButton}
             onPress={() => onNavigate("history")}
@@ -168,18 +174,6 @@ const RecorderScreen = ({ onNavigate }) => {
             <Text style={styles.logoutButtonText}>로그아웃</Text>
           </TouchableOpacity>
         </View>
-=======
-        <TouchableOpacity style={styles.scheduleButton} onPress={() => onNavigate("managerSchedule")}>
-          <Text style={styles.scheduleButtonText}>경기 일정 관리</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.historyButton}
-          onPress={() => onNavigate("history")}
-        >
-          <Text style={styles.historyButtonText}>경기 내역 보기</Text>
-        </TouchableOpacity>
->>>>>>> cheol
       </View>
     </View>
   );
