@@ -2,7 +2,7 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 
-const API_BASE_URL = "http://172.30.1.83:8000";
+const API_BASE_URL = "http://172.30.1.84:8000";
 const CSV_UPLOAD_ENDPOINT = "/api/testpost";
 
 const RecorderScreen = ({ onNavigate }) => {
@@ -151,6 +151,7 @@ const RecorderScreen = ({ onNavigate }) => {
             <Text style={styles.uploadButtonText}>CSV 업로드</Text>
           </TouchableOpacity>
 
+<<<<<<< HEAD
           <TouchableOpacity
             style={styles.historyButton}
             onPress={() => onNavigate("history")}
@@ -167,6 +168,18 @@ const RecorderScreen = ({ onNavigate }) => {
             <Text style={styles.logoutButtonText}>로그아웃</Text>
           </TouchableOpacity>
         </View>
+=======
+        <TouchableOpacity style={styles.scheduleButton} onPress={() => onNavigate("managerSchedule")}>
+          <Text style={styles.scheduleButtonText}>경기 일정 관리</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.historyButton}
+          onPress={() => onNavigate("history")}
+        >
+          <Text style={styles.historyButtonText}>경기 내역 보기</Text>
+        </TouchableOpacity>
+>>>>>>> cheol
       </View>
     </View>
   );
@@ -229,6 +242,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.5,
+  },
+  scheduleButton: {
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: "#10b981",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -20,
+  },
+  scheduleButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
   },
   historyButton: {
     height: 52,

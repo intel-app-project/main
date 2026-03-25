@@ -5,6 +5,7 @@ import RecorderScreen from "./screen/recorderScreen";
 import HistoryScreen from "./screen/historyScreen";
 import DirectorScreen from "./screen/DirectorScreen";
 import PlayerScreen from "./screen/PlayerScreen";
+import ManagerScheduleScreen from "./screen/managerScheduleScreen";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
@@ -21,6 +22,8 @@ export default function App() {
         <DirectorScreen onNavigate={setCurrentScreen} />
       ) : currentScreen === 'player' ? (
         <PlayerScreen onNavigate={setCurrentScreen} />
+      ) : currentScreen === 'managerSchedule' ? (
+        <ManagerScheduleScreen onNavigate={setCurrentScreen} />
       ) : null}
     </View>
   );
