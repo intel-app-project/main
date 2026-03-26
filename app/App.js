@@ -3,7 +3,7 @@ import { useState } from "react";
 import LoginScreen from "./screen/loginScreen";
 import ManagerScheduleScreen from "./screen/managerScheduleScreen";
 import DirectorScreen from "./screen/DirectorScreen";
-import PlayerScreen from "./screen/PlayerScreen";
+import PlayerScheduleScreen from "./screen/playerScheduleScreen"
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
@@ -15,7 +15,7 @@ export default function App() {
       ) : currentScreen === 'director' ? (
         <DirectorScreen onNavigate={setCurrentScreen} />
       ) : currentScreen === 'player' ? (
-        <PlayerScreen onNavigate={setCurrentScreen} />
+        <PlayerScheduleScreen onNavigate={setCurrentScreen} />
       ) : currentScreen === 'managerSchedule' ? (
         <ManagerScheduleScreen onNavigate={setCurrentScreen} />
       ) : null}

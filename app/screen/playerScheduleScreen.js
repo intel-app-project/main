@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 
-const API_BASE_URL = "http://172.30.1.19:8000";
+const API_BASE_URL = "http://172.30.1.42:8000";
 const SCHEDULE_API_ENDPOINT = "/api/schedule";
 const TEAM_API_ENDPOINT = "/api/team";
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
