@@ -16,8 +16,16 @@ export const pick = (obj, keys) => {
 
 export const findMemberByUserId = (members, userId) =>
   members.find(
-    (member) =>
-      String(pick(member, ["User_ID", "user_id"]) || "").trim() === userId,
+    (member) => {
+      const idVal = pick(member, ["Id", "id"]);
+      const userIdVal = pick(member, ["User_ID", "user_id"]);
+      const targetIdStr = String(userId ?? "").trim();
+      
+      return (
+        (idVal !== null && idVal !== undefined && String(idVal).trim() === targetIdStr) ||
+        (userIdVal !== null && userIdVal !== undefined && String(userIdVal).trim() === targetIdStr)
+      );
+    }
   );
 
 export const parseJsonField = (value) => {

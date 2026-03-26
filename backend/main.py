@@ -149,7 +149,13 @@ def get_team():
 
 @app.get("/api/member/{user_id}")
 def get_member_by_user_id(user_id: str):
-    response = supabase.table("member").select("*").eq("User_ID", user_id).limit(1).execute()
+    query = supabase.table("member").select("*")
+    
+    if user_id.isdigit():
+        response = query.eq("Id", int(user_id)).execute()
+    else:
+        response = query.eq("User_ID", user_id).execute()
+        
     member = response.data[0] if response.data else None
 
     if not member:

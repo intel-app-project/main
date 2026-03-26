@@ -8,19 +8,18 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, useRoute } from "@react-navigation/native";
 import Svg, { Polygon, Text as SvgText } from "react-native-svg";
 import { styles } from "./playerDetailScreen.styles";
 import { supabase } from "../lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import PlayerFooter from "../components/PlayerFooter";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - 24; // Based on 12px horizontal padding
 
-const PlayerDetailScreen = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { memberId } = route.params || { memberId: 4 };
+const PlayerDetailScreen = ({navigation, route}) => {
+  const { id } = route.params || {};
+  const targetId = id; 
 
   const [loading, setLoading] = useState(true);
   const [member, setMember] = useState(null);
@@ -31,7 +30,7 @@ const PlayerDetailScreen = () => {
   const [recentGames, setRecentGames] = useState([]);
 
   const [hitterStats, setHitterStats] = useState({
-    contact: 0, power: 0, speed: 70, eye: 0, clutch: 0,
+    contact: 0, power: 0, speed: 0, eye: 0, clutch: 0,
     avg: ".000", hr: 0, rbi: 0, ops: ".000", obp: ".000", slg: ".000",
     hits: 0, ab: 0, bb: 0, k: 0
   });
@@ -44,7 +43,7 @@ const PlayerDetailScreen = () => {
 
   useEffect(() => {
     fetchPlayerData();
-  }, [memberId]);
+  }, [targetId]);
 
   const handleBack = () => {
     if (navigation.canGoBack()) {
@@ -55,14 +54,39 @@ const PlayerDetailScreen = () => {
   };
 
   const fetchPlayerData = async () => {
+    console.log(`[DEBUG] fetchPlayerData invoked for targetId: ${targetId} (v1.0.6)`);
     try {
       setLoading(true);
+      // Reset previous states to prevent stale data
+      setMember(null);
+      setTeam(null);
+      setRecentGames([]);
+      setHitterStats({
+        contact: 0, power: 0, speed: 0, eye: 0, clutch: 0,
+        avg: ".000", hr: 0, rbi: 0, ops: ".000", obp: ".000", slg: ".000",
+        hits: 0, ab: 0, bb: 0, k: 0
+      });
+      setPitcherStats({
+        dominance: 0, control: 0, stamina: 0, stability: 0, resilience: 0,
+        era: "0.00", whip: "0.00", k9: "0.0", avgSpeed: 0,
+        ip: "0.0", kSum: 0, bbSum: 0, hitsAllowed: 0
+      });
 
-      const { data: memberData, error: memberError } = await supabase
-        .from("member")
-        .select("*")
-        .eq("Id", memberId)
-        .single();
+      if (targetId === undefined || targetId === null) {
+        throw new Error("사용자 식별 정보가 없습니다.");
+      }
+
+      let query = supabase.from("member").select("*");
+      
+      const isStringId = typeof targetId === "string" && targetId.startsWith("user");
+      
+      if (isStringId) {
+        query = query.eq("User_ID", targetId);
+      } else {
+        query = query.eq("Id", targetId);
+      }
+
+      const { data: memberData, error: memberError } = await query.single();
 
       if (memberError) throw memberError;
       setMember(memberData);
@@ -76,29 +100,32 @@ const PlayerDetailScreen = () => {
         setTeam(teamData);
       }
 
-      const { data: allGames } = await supabase
+      const { data: allGames, error: gamesError } = await supabase
         .from("game")
         .select("*")
-        .or(`batter_id.eq.${memberId},pitcher_id.eq.${memberId}`)
+        .or(`batter_id.eq.${memberData.Id},pitcher_id.eq.${memberData.Id}`)
         .order('date', { ascending: false });
 
       if (allGames && allGames.length > 0) {
         setRecentGames(allGames.slice(0, 5));
         
-        const battingGames = allGames.filter(g => g.batter_id === memberId);
-        const pitchingGames = allGames.filter(g => g.pitcher_id === memberId);
+        // Use Number() to ensure type consistency, especially for ID 0
+        const battingGames = allGames.filter(g => Number(g.batter_id) === Number(memberData.Id));
+        const pitchingGames = allGames.filter(g => Number(g.pitcher_id) === Number(memberData.Id));
 
-        if (battingGames.length > 0) {
-          calculateHitterStats(battingGames);
-          setCanBat(true);
-        }
-        
-        if (pitchingGames.length > 0 || memberData.Is_Pitcher === 1) {
-          calculatePitcherStats(pitchingGames);
-          setCanPitch(true);
-          if (memberData.Is_Pitcher === 1) setActiveMode("PITCHER");
-        }
+        // Set capabilities based on Is_Pitcher flag
+        // Pitchers can see both hitter/pitcher stats, others only hitter
+        const isPitcher = memberData.Is_Pitcher === 1;
+        setCanPitch(isPitcher);
+        setCanBat(true); 
+
+        calculateHitterStats(battingGames);
+        calculatePitcherStats(pitchingGames);
+
+        // Set default mode based on Is_Pitcher
+        setActiveMode(isPitcher ? "PITCHER" : "HITTER");
       } else if (memberData.Is_Pitcher === 1) {
+        console.log("[DEBUG] No games found for pitcher, defaulting to 0 stats.");
         setCanPitch(true);
         setActiveMode("PITCHER");
       }
@@ -110,6 +137,14 @@ const PlayerDetailScreen = () => {
   };
 
   const calculateHitterStats = (games) => {
+    if (!games || games.length === 0) {
+      setHitterStats({
+        contact: 0, power: 0, speed: 0, eye: 0, clutch: 0,
+        avg: ".000", hr: 0, rbi: 0, ops: ".000", obp: ".000", slg: ".000",
+        hits: 0, ab: 0, bb: 0, k: 0
+      });
+      return;
+    }
     let hits = 0, ab = 0, hr = 0, dbl = 0, tpl = 0, bb = 0, hbp = 0, k = 0, rbi = 0;
     let rispAB = 0, rispHits = 0;
 
@@ -146,7 +181,7 @@ const PlayerDetailScreen = () => {
     setHitterStats({
       contact: Math.min(100, Math.round(avg * 250)),
       power: Math.min(100, Math.round(slg * 150)),
-      speed: 70, 
+      speed: 0, 
       eye: Math.min(100, Math.round((bb / (games.length || 1)) * 400)),
       clutch: Math.min(100, Math.round(clutch * 200)),
       avg: avg.toFixed(3),
@@ -158,6 +193,14 @@ const PlayerDetailScreen = () => {
   };
 
   const calculatePitcherStats = (games) => {
+    if (!games || games.length === 0) {
+      setPitcherStats({
+        dominance: 0, control: 0, stamina: 0, stability: 0, resilience: 0,
+        era: "0.00", whip: "0.00", k9: "0.0", avgSpeed: 0,
+        ip: "0.0", kSum: 0, bbSum: 0, hitsAllowed: 0
+      });
+      return;
+    }
     let r = 0, outs = 0, h = 0, bb = 0, k = 0, rispAB = 0, rispHits = 0;
 
     games.forEach(g => {
@@ -181,22 +224,28 @@ const PlayerDetailScreen = () => {
     const era = (r * 9) / ipDec;
     const whip = (h + bb) / ipDec;
     const k9 = (k * 9) / ipDec;
-    const resilience = rispAB > 0 ? 1 - (rispHits / rispAB) : 1;
+    const resilienceBase = rispAB > 0 ? 1 - (rispHits / rispAB) : (games.length > 0 ? 1 : 0);
 
     setPitcherStats({
-      dominance: Math.min(100, Math.round(k9 * 10)),
-      control: Math.min(100, Math.round(100 - (bb / (games.length || 1)) * 200)),
-      stamina: Math.min(100, Math.round(ipDec * 15)),
-      stability: Math.min(100, Math.round(100 - era * 8)),
-      resilience: Math.round(resilience * 100),
-      era: era.toFixed(2),
-      whip: whip.toFixed(2),
-      k9: k9.toFixed(1),
+      dominance: Math.max(0, Math.min(100, Math.round(k9 * 10))),
+      control: games.length > 0 ? Math.max(0, Math.min(100, Math.round(100 - (bb / games.length) * 200))) : 0,
+      stamina: Math.max(0, Math.min(100, Math.round(ipDec * 15))),
+      stability: games.length > 0 ? Math.max(0, Math.min(100, Math.round(100 - era * 8))) : 0,
+      resilience: Math.max(0, Math.round(resilienceBase * 100)),
+      era: games.length > 0 ? era.toFixed(2) : "0.00",
+      whip: games.length > 0 ? whip.toFixed(2) : "0.00",
+      k9: games.length > 0 ? k9.toFixed(1) : "0.0",
       ip: ipStr,
       kSum: k,
       bbSum: bb,
       hitsAllowed: h,
-      avgSpeed: 141
+      avgSpeed: 0
+    });
+
+    console.log(`[DEBUG] Stats for ID ${member.Id}:`, {
+      bb,
+      games: games.length,
+      control: games.length > 0 ? Math.max(0, Math.min(100, Math.round(100 - (bb / games.length) * 200))) : 0
     });
   };
 
@@ -283,7 +332,7 @@ const PlayerDetailScreen = () => {
                   fontWeight="700"
                   textAnchor={anchor}
                 >
-                  {Math.round(data[p.key])}
+                  {Math.max(0, Math.round(data[p.key]))}
                 </SvgText>
               </React.Fragment>
             );
@@ -308,6 +357,21 @@ const PlayerDetailScreen = () => {
       <View style={[styles.container, { justifyContent: "center" }]}>
         <ActivityIndicator size="large" color="#4a7c59" />
       </View>
+    );
+  }
+
+  if (!member) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <MaterialCommunityIcons name="alert-circle-outline" size={64} color="#705c30" />
+        <Text style={{ marginTop: 16, fontSize: 16, color: "#705c30", fontWeight: "600" }}>유저 정보를 불러올 수 없습니다.</Text>
+        <TouchableOpacity 
+          style={[styles.actionButton, { marginTop: 24 }]} 
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.actionButtonText}>뒤로 가기</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
     );
   }
 
@@ -362,13 +426,28 @@ const PlayerDetailScreen = () => {
             </View>
             <View style={styles.infoBadge}>
               <Text style={styles.infoBadgeText}>
-                {canPitch && canBat ? "투타 겸업" : member?.Is_Pitcher ? "투수" : "타자"}
+                {canPitch && canBat ? "투타 겸업" : member?.Is_Pitcher ? "투수" : (member?.Primary_Position === "감독" || member?.Primary_Position === "기록원") ? "스태프" : "타자"}
               </Text>
             </View>
           </View>
+          
+          {team?.trait && (
+            <View style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(74, 124, 89, 0.05)", borderRadius: 8 }}>
+              <Text style={{ fontSize: 12, color: "#4a7c59", fontWeight: "800", marginBottom: 4 }}>TEAM PHILOSOPHY</Text>
+              <Text style={{ fontSize: 13, color: "#705c30", lineHeight: 18 }}>{team.trait}</Text>
+            </View>
+          )}
         </View>
 
-        <View style={styles.sectionHeader}>
+        {(member?.Primary_Position === "감독" || member?.Primary_Position === "기록원") ? (
+          <View style={[styles.card, { padding: 40, alignItems: "center" }]}>
+             <MaterialCommunityIcons name="shield-account" size={64} color="#4a7c59" />
+             <Text style={{ marginTop: 16, fontSize: 18, fontWeight: "700", color: "#2e3230" }}>{member.Primary_Position} 프로필</Text>
+             <Text style={{ marginTop: 8, fontSize: 14, color: "#705c30", textAlign: "center" }}>팀의 운영과 기록을 담당하는 공식 스태프입니다. 선수 데이터 집계 대상에서 제외됩니다.</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{activeMode === "HITTER" ? "시즌 성적 분석" : "투구 실적 분석"}</Text>
           <Text style={styles.sectionSubtitle}>{activeMode === "HITTER" ? "타격 퍼포먼스" : "투구 효율성"}</Text>
         </View>
@@ -442,7 +521,7 @@ const PlayerDetailScreen = () => {
                      ].map(item => {
                         let val = 0;
                         recentGames.forEach(g => {
-                          if (g.batter_id === memberId) {
+                          if (g.batter_id === member.Id) {
                             const res = g.result || "";
                             if (item.key === "hits" && ["안타", "2루타", "3루타", "홈런", "적시타"].some(s => res.includes(s))) val++;
                             if (item.key === "hr" && res.includes("홈런")) val++;
@@ -466,7 +545,7 @@ const PlayerDetailScreen = () => {
                         let val = 0;
                         recentGames.forEach(g => {
                            const res = g.result || "";
-                           if (g.pitcher_id === memberId) {
+                           if (g.pitcher_id === member.Id) {
                              if (item.key === "outs") val += (g.outs_after - g.outs_before);
                              if (item.key === "k" && res.includes("삼진")) val++;
                              if (item.key === "bb" && (res.includes("볼넷") || res.includes("사구"))) val++;
@@ -486,12 +565,15 @@ const PlayerDetailScreen = () => {
              <Text style={[styles.gameLogText, { padding: 10, textAlign: "left", color: "#705c30" }]}>최근 기록된 경기가 없습니다.</Text>
            )}
         </View>
+          </>
+        )}
 
         <TouchableOpacity style={styles.actionButton} onPress={handleBack}>
           <MaterialCommunityIcons name="arrow-left" size={18} color="#4a7c59" />
           <Text style={styles.actionButtonText}>목록으로 돌아가기</Text>
         </TouchableOpacity>
       </ScrollView>
+      <PlayerFooter activeTab="UserInfo" />
     </SafeAreaView>
   );
 };

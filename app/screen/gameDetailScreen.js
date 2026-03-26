@@ -189,9 +189,9 @@ const buildUndecidedRoster = (schedule, members, teamRows, loginUserId) => {
     )
     .filter(
       (member) =>
-        String(
+        !["감독", "기록원"].includes(String(
           member?.Primary_Position ?? member?.primary_position ?? "",
-        ).trim() !== "감독",
+        ).trim()),
     )
     .filter((member) => !checkedMemberIds.has(String(getMemberId(member))))
     .map((member) => buildMemberCard(member, teamName, " · 미응답"))
@@ -241,7 +241,10 @@ const buildMatchData = (
     loginUserId,
   );
 
+  const lineup = targetSchedule.lineup ? parseMemberMap(targetSchedule.lineup) : null;
+
   return {
+    matchId: targetSchedule.id,
     matchDate: formatMatchDate(targetSchedule.date),
     matchTime: DEFAULT_MATCH_TIME,
     venue: DEFAULT_STADIUM_NAME,
@@ -254,6 +257,7 @@ const buildMatchData = (
     participating: roster.participating,
     notParticipating: roster.notParticipating,
     undecided,
+    lineup,
   };
 };
 
@@ -286,10 +290,8 @@ const PlayerCard = ({ item, strong, dimmed, accentBorder }) => (
   </View>
 );
 
-const GameDetailScreen = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { scheduleId, loginUserId } = route.params || {};
+const GameDetailScreen = ({navigation, route}) => {
+  const { scheduleId, id } = route.params || {};
   const [matchData, setMatchData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
@@ -449,6 +451,42 @@ const GameDetailScreen = () => {
           <View style={styles.lineupHeader}>
             <Text style={styles.lineupTitle}>LINEUP</Text>
           </View>
+
+          {matchData?.lineup && (
+            <View style={styles.card}>
+              <View style={styles.cardTitleWrap}>
+                <MaterialCommunityIcons name="format-list-numbered" size={20} color="#4a7c59" />
+                <Text style={styles.cardTitleText}>Starting Lineup</Text>
+              </View>
+              <View style={{ marginTop: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#4a7c59", marginBottom: 8 }}>BATTING ORDER</Text>
+                {matchData.lineup.batting.map((name, idx) => (
+                  <View key={idx} style={{ flexDirection: "row", paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: "#f0f0f0" }}>
+                    <Text style={{ width: 24, fontSize: 12, fontWeight: "800", color: "#705c30" }}>{idx + 1}</Text>
+                    <Text style={{ fontSize: 14, color: "#2e3230" }}>{name}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={{ marginTop: 16 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#4a7c59", marginBottom: 8 }}>DEFENSE</Text>
+                {Object.entries(matchData.lineup.defense).map(([pos, name]) => {
+                  if (pos === "BENCH") return null;
+                  return (
+                    <View key={pos} style={{ flexDirection: "row", paddingVertical: 4 }}>
+                      <Text style={{ width: 30, fontSize: 11, fontWeight: "800", color: "#705c30" }}>{pos}</Text>
+                      <Text style={{ fontSize: 14, color: "#2e3230" }}>{name}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+              {matchData.lineup.defense.BENCH && (
+                <View style={{ marginTop: 16 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#a0a0a0", marginBottom: 4 }}>BENCH</Text>
+                  <Text style={{ fontSize: 13, color: "#705c30" }}>{matchData.lineup.defense.BENCH.join(", ")}</Text>
+                </View>
+              )}
+            </View>
+          )}
 
           <View style={styles.column}>
             <SectionHeader

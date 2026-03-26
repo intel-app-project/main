@@ -34,10 +34,10 @@ import {
   buildCalendarAttendanceMap,
 } from "../utils/scheduleUtils";
 import { styles } from "./playerScheduleScreen.styles";
+import PlayerFooter from "../components/PlayerFooter";
 
 const PlayerScheduleScreen = ({ navigation, route }) => {
-  const { loginUserId } = route.params || {};
-  const normalizedUserId = String(loginUserId || "").trim();
+  const { id } = route.params;
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [memberName, setMemberName] = useState("");
@@ -64,13 +64,6 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
     let isMounted = true;
 
     const loadUpcomingSchedules = async () => {
-      if (!normalizedUserId) {
-        if (isMounted) {
-          setErrorText("로그인 사용자 ID가 없습니다.");
-          setLoading(false);
-        }
-        return;
-      }
 
       try {
         if (isMounted) {
@@ -80,7 +73,7 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
 
         const [memberRes, scheduleRes, teamRes] = await Promise.all([
           fetch(
-            `${API_BASE_URL}${MEMBER_API_ENDPOINT}${encodeURIComponent(normalizedUserId)}`,
+            `${API_BASE_URL}${MEMBER_API_ENDPOINT}/${id}`,
           ),
           fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`),
           fetch(`${API_BASE_URL}${TEAM_API_ENDPOINT}`),
@@ -98,16 +91,10 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
         const scheduleRows = Array.isArray(schedulesJson) ? schedulesJson : [];
         const teamRows = Array.isArray(teamsJson) ? teamsJson : [];
         const teamNameMap = buildTeamNameMap(teamRows);
-        const member = await resolveMember(memberRes, normalizedUserId);
-
-        if (!member) {
-          throw new Error(
-            `member 테이블에서 '${normalizedUserId}' 사용자를 찾지 못했습니다.`,
-          );
-        }
+        const member = await resolveMember(memberRes, id); 
 
         const foundName = String(
-          pick(member, ["Name", "name"]) || normalizedUserId,
+          pick(member, ["Name", "name"]) || id,
         );
         const foundMemberId = pick(member, ["Id", "id"]);
 
@@ -161,7 +148,7 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
     return () => {
       isMounted = false;
     };
-  }, [normalizedUserId]);
+  }, [id]);
 
   const hasNearestGame = Boolean(nearestGame);
   const selectedDateKey = nearestGame?.date
@@ -466,7 +453,7 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
               onPress={() =>
                 navigation.navigate("GameDetail", {
                   scheduleId: nearestGame.scheduleId,
-                  loginUserId: normalizedUserId,
+                  id: id,
                 })
               }
             >
@@ -541,6 +528,7 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
           ) : null}
         </View>
       </ScrollView>
+      <PlayerFooter activeTab="TeamSchedule" />
     </SafeAreaView>
   );
 };
