@@ -1,10 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Alert } from "react-native";
+import { useEffect, useState } from "react";
+import { Text, View, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Alert } from "react-native";
 
-const API_BASE_URL = "http://172.30.1.42:8000";
-const SCHEDULE_API_ENDPOINT = "/api/schedule";
+import { styles } from "./managerScheduleScreen.styles";
+import { 
+  deleteSchedule, 
+  saveSchedule, 
+  resetScheduleForm 
+} from "../utils/scheduleUtils";
+import { API_BASE_URL } from "../constants/commonConstants";
+import { SCHEDULE_API_ENDPOINT } from "../constants/scheduleConstants";
 
-const ManagerScheduleScreen = ({ onNavigate }) => {
+const ManagerScheduleScreen = ({ navigation }) => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -62,32 +68,15 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
         away: parseInt(away, 10)
       };
 
-      const url = editingId 
-        ? `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${editingId}`
-        : `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`;
+      await saveSchedule(payload, editingId);
       
-      const method = editingId ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP 상태 코드 ${response.status}`);
-      }
-      
-      const result = await response.json();
       Alert.alert(
         editingId ? "수정 성공" : "등록 성공", 
         editingId ? "일정이 성공적으로 수정되었습니다." : "일정이 성공적으로 등록되었습니다."
       );
       
-      handleCancelEdit(); // 폼 초기화 및 수정 모드 종료
-      fetchSchedules(); // 목록 즉시 갱신
+      handleCancelEdit();
+      fetchSchedules();
     } catch (e) {
       console.error(editingId ? "일정 수정 오류:" : "일정 등록 오류:", e);
       Alert.alert(
@@ -107,10 +96,7 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
   };
 
   const handleCancelEdit = () => {
-    setEditingId(null);
-    setDate("");
-    setHome("");
-    setAway("");
+    resetScheduleForm({ setEditingId, setDate, setHome, setAway });
   };
 
   const handleDelete = (id) => {
@@ -124,12 +110,7 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
           style: "destructive", 
           onPress: async () => {
             try {
-              const response = await fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${id}`, {
-                method: "DELETE"
-              });
-              if (!response.ok) {
-                throw new Error(`HTTP 오류 ${response.status}`);
-              }
+              await deleteSchedule(id);
               Alert.alert("삭제 완료", "일정이 성공적으로 삭제되었습니다.");
               fetchSchedules();
             } catch (e) {
@@ -243,7 +224,7 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
         )}
       </View>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('login')}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Login')}>
          <Text style={styles.backButtonText}>돌아가기</Text>
       </TouchableOpacity>
     </View>
@@ -252,188 +233,4 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
 
 export default ManagerScheduleScreen;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#faf6f0",
-    paddingTop: 60,
-    width: "100%",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#4a7c59",
-    paddingHorizontal: 24,
-    marginBottom: 10,
-  },
-  formContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-  },
-  formTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
-    color: "#705c30"
-  },
-  input: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: "rgba(74, 124, 89, 0.2)",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: "#faf6f0",
-    fontSize: 15
-  },
-  submitButton: {
-    height: 52,
-    backgroundColor: "#4a7c59",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  submitButtonDisabled: {
-    backgroundColor: "rgba(74, 124, 89, 0.4)",
-  },
-  submitButtonText: {
-    color: "#faf6f0",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "rgba(74, 124, 89, 0.1)",
-    marginVertical: 10,
-    marginHorizontal: 24
-  },
-  listContainer: {
-    flex: 1,
-    width: "100%"
-  },
-  listContent: {
-    paddingBottom: 20,
-    paddingHorizontal: 24,
-  },
-  itemCard: {
-    padding: 24,
-    borderRadius: 12,
-    backgroundColor: "#faf6f0",
-    marginBottom: 16,
-    shadowColor: "#2e3230",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(74, 124, 89, 0.1)',
-    paddingBottom: 4,
-  },
-  gameTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#303a31',
-  },
-  doneText: {
-    fontSize: 14,
-    color: '#4a7c59',
-    fontWeight: '700'
-  },
-  upcomingText: {
-    fontSize: 14,
-    color: '#705c30',
-    fontWeight: '700'
-  },
-  deleteButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "rgba(112, 92, 48, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(112, 92, 48, 0.2)",
-  },
-  deleteButtonText: {
-    fontSize: 12,
-    color: "#705c30",
-    fontWeight: "700",
-  },
-  itemText: {
-    fontSize: 14,
-    color: "#4b5563",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#6b7280",
-    marginTop: 40,
-    textAlign: "center",
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#705c30",
-    marginTop: 40,
-    textAlign: "center",
-  },
-  backButton: {
-    marginHorizontal: 24,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#4a7c59",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 40,
-    marginTop: 10,
-  },
-  backButtonText: {
-    color: "#4a7c59",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  editButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "rgba(74, 124, 89, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(74, 124, 89, 0.2)",
-    marginRight: 8,
-  },
-  editButtonText: {
-    fontSize: 12,
-    color: "#4a7c59",
-    fontWeight: "700",
-  },
-  updateButton: {
-    backgroundColor: "#705c30",
-  },
-  cancelButton: {
-    height: 52,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-  },
-  cancelButtonText: {
-    color: "#6b7280",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  updatedAtText: {
-    fontSize: 11,
-    color: "#9ca3af",
-    marginTop: 4,
-    textAlign: 'right'
-  }
-});
+

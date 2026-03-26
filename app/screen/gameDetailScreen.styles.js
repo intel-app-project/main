@@ -1,20 +1,6 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
+import { StyleSheet } from "react-native";
 
-const GameDetail = ({ onBack }) => {
-  return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>뒤로</Text>
-      </TouchableOpacity>
-      <Text style={styles.title}>gameDetail</Text>
-    </View>
-  );
-};
-
-export default GameDetail;
-
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
