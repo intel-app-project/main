@@ -13,6 +13,7 @@ import { API_BASE_URL } from "../constants/commonConstants";
 import {
   SCHEDULE_API_ENDPOINT,
   TEAM_API_ENDPOINT,
+  MEMBER_API_ENDPOINT,
   WEEKDAY_LABELS,
   STADIUM_LINK_URL,
   ATTENDANCE_OPTIONS,
@@ -33,8 +34,6 @@ import {
   buildCalendarAttendanceMap,
 } from "../utils/scheduleUtils";
 import { styles } from "./playerScheduleScreen.styles";
-
-
 
 const PlayerScheduleScreen = ({ navigation, route }) => {
   const { loginUserId } = route.params || {};
@@ -81,7 +80,7 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
 
         const [memberRes, scheduleRes, teamRes] = await Promise.all([
           fetch(
-            `${API_BASE_URL}/api/member/${encodeURIComponent(normalizedUserId)}`,
+            `${API_BASE_URL}${MEMBER_API_ENDPOINT}${encodeURIComponent(normalizedUserId)}`,
           ),
           fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`),
           fetch(`${API_BASE_URL}${TEAM_API_ENDPOINT}`),
@@ -133,7 +132,8 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
 
         const nearest = normalized[0];
         const rest = normalized.map(summarizeUpcomingGame);
-        const nextCalendarAttendanceMap = buildCalendarAttendanceMap(normalized);
+        const nextCalendarAttendanceMap =
+          buildCalendarAttendanceMap(normalized);
 
         if (isMounted) {
           setNearestGame(nearest);
@@ -164,7 +164,9 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
   }, [normalizedUserId]);
 
   const hasNearestGame = Boolean(nearestGame);
-  const selectedDateKey = nearestGame?.date ? toDateKey(nearestGame.date) : null;
+  const selectedDateKey = nearestGame?.date
+    ? toDateKey(nearestGame.date)
+    : null;
   const todayDateKey = toDateKey(new Date());
   const visibleUpcomingGames = useMemo(
     () => upcomingGames.slice(0, visibleUpcomingCount),
@@ -251,14 +253,19 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.detail || `attendance API 오류: ${response.status}`);
+        throw new Error(
+          result.detail || `attendance API 오류: ${response.status}`,
+        );
       }
 
       updateUpcomingGameStatus(gameKey, nextStatus);
       updateCalendarStatus(game.scheduleDate, nextStatus);
-      
+
       if (nearestGame && getGameKey(nearestGame) === gameKey) {
-        setNearestGame((current) => ({ ...current, attendanceStatus: nextStatus }));
+        setNearestGame((current) => ({
+          ...current,
+          attendanceStatus: nextStatus,
+        }));
       }
 
       setOpenedAttendanceKey(null);
@@ -393,12 +400,12 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
           <Text style={styles.pageTitle}>
             {memberName ? `${memberName}의 일정` : "일정"}
           </Text>
-            <TouchableOpacity
-              style={styles.switchUserButton}
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Text style={styles.switchUserText}>사용자 변경</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.switchUserButton}
+            onPress={() => navigation.navigate("Login")}
+          >
+            <Text style={styles.switchUserText}>사용자 변경</Text>
+          </TouchableOpacity>
         </View>
 
         {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
@@ -456,7 +463,12 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={[styles.secondaryButton, styles.detailButton]}
-              onPress={() => navigation.navigate('GameDetail', { scheduleId: nearestGame.scheduleId })}
+              onPress={() =>
+                navigation.navigate("GameDetail", {
+                  scheduleId: nearestGame.scheduleId,
+                  loginUserId: normalizedUserId,
+                })
+              }
             >
               <Text style={[styles.secondaryText, styles.detailButtonText]}>
                 경기 상세
@@ -534,4 +546,3 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
 };
 
 export default PlayerScheduleScreen;
-

@@ -1,5 +1,6 @@
 export const SCHEDULE_API_ENDPOINT = "/api/schedule";
 export const TEAM_API_ENDPOINT = "/api/team";
+export const MEMBER_API_ENDPOINT = "/api/member";
 export const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 export const STADIUM_LINK_URL = "https://www.ktwiz.co.kr/wizpark/location";
 export const ATTENDANCE_OPTIONS = [
