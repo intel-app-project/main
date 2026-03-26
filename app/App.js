@@ -9,6 +9,7 @@ import DirectorScreen from "./screen/DirectorScreen";
 import PlayerScheduleScreen from "./screen/playerScheduleScreen";
 import GameDetailScreen from "./screen/gameDetailScreen";
 import PlayerDetailScreen from "./screen/playerDetailScreen";
+import LeagueGameScheduleScreen from "./screen/leagueGameScheduleScreen";
 
 const Stack = createStackNavigator();
 
@@ -16,18 +17,32 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator 
-          initialRouteName="PlayerDetail"
+        <Stack.Navigator
+          initialRouteName="LeagueGameSchedule"
           screenOptions={{
-            headerShown: false
+            headerShown: false,
           }}
         >
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Director" component={DirectorScreen} />
-          <Stack.Screen name="PlayerSchedule" component={PlayerScheduleScreen} />
-          <Stack.Screen name="ManagerSchedule" component={ManagerScheduleScreen} />
+          <Stack.Screen
+            name="PlayerSchedule"
+            component={PlayerScheduleScreen}
+          />
+          <Stack.Screen
+            name="ManagerSchedule"
+            component={ManagerScheduleScreen}
+          />
           <Stack.Screen name="GameDetail" component={GameDetailScreen} />
-          <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} initialParams={{ memberId: 1 }} />
+          <Stack.Screen
+            name="PlayerDetail"
+            component={PlayerDetailScreen}
+            initialParams={{ memberId: 1 }}
+          />
+          <Stack.Screen
+            name="LeagueGameSchedule"
+            component={LeagueGameScheduleScreen}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
