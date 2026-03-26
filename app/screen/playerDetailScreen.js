@@ -18,8 +18,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - 24; // Based on 12px horizontal padding
 
 const PlayerDetailScreen = ({navigation, route}) => {
-  const { id } = route.params || {};
+  const { id } = route.params;
   const targetId = id; 
+
 
   const [loading, setLoading] = useState(true);
   const [member, setMember] = useState(null);
@@ -43,7 +44,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
 
   useEffect(() => {
     fetchPlayerData();
-  }, [targetId]);
+  }, [id]);
 
   const handleBack = () => {
     if (navigation.canGoBack()) {
@@ -54,7 +55,6 @@ const PlayerDetailScreen = ({navigation, route}) => {
   };
 
   const fetchPlayerData = async () => {
-    console.log(`[DEBUG] fetchPlayerData invoked for targetId: ${targetId} (v1.0.6)`);
     try {
       setLoading(true);
       // Reset previous states to prevent stale data
@@ -89,6 +89,8 @@ const PlayerDetailScreen = ({navigation, route}) => {
       const { data: memberData, error: memberError } = await query.single();
 
       if (memberError) throw memberError;
+
+
       setMember(memberData);
 
       if (memberData.Team) {
@@ -119,13 +121,12 @@ const PlayerDetailScreen = ({navigation, route}) => {
         setCanPitch(isPitcher);
         setCanBat(true); 
 
-        calculateHitterStats(battingGames);
-        calculatePitcherStats(pitchingGames);
+        calculateHitterStats(battingGames, memberData);
+        calculatePitcherStats(pitchingGames, memberData);
 
         // Set default mode based on Is_Pitcher
         setActiveMode(isPitcher ? "PITCHER" : "HITTER");
       } else if (memberData.Is_Pitcher === 1) {
-        console.log("[DEBUG] No games found for pitcher, defaulting to 0 stats.");
         setCanPitch(true);
         setActiveMode("PITCHER");
       }
@@ -136,7 +137,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
     }
   };
 
-  const calculateHitterStats = (games) => {
+  const calculateHitterStats = (games, currentMemberData) => {
     if (!games || games.length === 0) {
       setHitterStats({
         contact: 0, power: 0, speed: 0, eye: 0, clutch: 0,
@@ -178,6 +179,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
     const slg = ab > 0 ? (hits - dbl - tpl - hr + dbl*2 + tpl*3 + hr*4) / ab : 0;
     const clutch = rispAB > 0 ? rispHits / rispAB : 0;
 
+    const activeMember = currentMemberData || member;
     setHitterStats({
       contact: Math.min(100, Math.round(avg * 250)),
       power: Math.min(100, Math.round(slg * 150)),
@@ -192,7 +194,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
     });
   };
 
-  const calculatePitcherStats = (games) => {
+  const calculatePitcherStats = (games, currentMemberData) => {
     if (!games || games.length === 0) {
       setPitcherStats({
         dominance: 0, control: 0, stamina: 0, stability: 0, resilience: 0,
@@ -242,11 +244,14 @@ const PlayerDetailScreen = ({navigation, route}) => {
       avgSpeed: 0
     });
 
-    console.log(`[DEBUG] Stats for ID ${member.Id}:`, {
-      bb,
-      games: games.length,
-      control: games.length > 0 ? Math.max(0, Math.min(100, Math.round(100 - (bb / games.length) * 200))) : 0
-    });
+    const activeMember = currentMemberData || member;
+    if (activeMember) {
+      console.log(`[DEBUG] Stats for ID ${activeMember.Id}:`, {
+        bb,
+        games: games.length,
+        control: games.length > 0 ? Math.max(0, Math.min(100, Math.round(100 - (bb / games.length) * 200))) : 0
+      });
+    }
   };
 
   const RadarChart = ({ data, activeRole }) => {

@@ -146,34 +146,16 @@ const buildRosterSections = (schedule, members, teamRows) => {
   };
 };
 
-const findMemberByUserId = (members, loginUserId) => {
-  if (!loginUserId || !Array.isArray(members)) {
-    return null;
-  }
+const findMemberByUserId = (members, id) => (
+  members.find((member) => member.Id === id)
+);
 
-  return (
-    members.find(
-      (member) =>
-        String(member?.User_ID ?? member?.user_id ?? "").trim() ===
-        String(loginUserId).trim(),
-    ) || null
-  );
-};
-
-const buildUndecidedRoster = (schedule, members, teamRows, loginUserId) => {
-  const loginMember = findMemberByUserId(members, loginUserId);
-  const userTeamId = loginMember?.Team ?? loginMember?.team;
-
-  if (userTeamId == null) {
-    return [];
-  }
-
+const buildUndecidedRoster = (schedule, members, teamRows, id) => {
+  const loginMember = findMemberByUserId(members, id);
+  const userTeamId = loginMember?.Team;
   const isHomeTeam = String(schedule?.home) === String(userTeamId);
   const isAwayTeam = String(schedule?.away) === String(userTeamId);
 
-  if (!isHomeTeam && !isAwayTeam) {
-    return [];
-  }
 
   const checkedMemberMap = parseMemberMap(
     isHomeTeam ? schedule?.home_member : schedule?.away_member,
@@ -185,7 +167,7 @@ const buildUndecidedRoster = (schedule, members, teamRows, loginUserId) => {
 
   return (Array.isArray(members) ? members : [])
     .filter(
-      (member) => String(member?.Team ?? member?.team) === String(userTeamId),
+      (member) => String(member?.Team) === String(userTeamId),
     )
     .filter(
       (member) =>
@@ -219,7 +201,7 @@ const buildMatchData = (
   teamRows = [],
   memberRows = [],
   scheduleId,
-  loginUserId,
+  id,
 ) => {
   const targetSchedule = pickSchedule(scheduleRows, scheduleId);
 
@@ -238,7 +220,7 @@ const buildMatchData = (
     targetSchedule,
     memberRows,
     teamRows,
-    loginUserId,
+    id,
   );
 
   const lineup = targetSchedule.lineup ? parseMemberMap(targetSchedule.lineup) : null;
@@ -335,7 +317,7 @@ const GameDetailScreen = ({navigation, route}) => {
               teamRows,
               memberRows,
               scheduleId,
-              loginUserId,
+              id,
             ),
           );
         }
@@ -359,12 +341,12 @@ const GameDetailScreen = ({navigation, route}) => {
     return () => {
       isMounted = false;
     };
-  }, [scheduleId, loginUserId]);
+  }, [scheduleId, id]);
 
   const participating = matchData?.participating || EMPTY_ROSTER.participating;
   const notParticipating =
     matchData?.notParticipating || EMPTY_ROSTER.notParticipating;
-  const undecided = matchData?.undecided || EMPTY_ROSTER.undecided;
+  const undecided = matchData?.undecided ||EMPTY_ROSTER.undecided;
   const visibleUndecided = undecided.slice(0, visibleUndecidedCount);
 
   return (

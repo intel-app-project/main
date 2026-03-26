@@ -11,7 +11,7 @@ export const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 28,
+    paddingBottom: 120,
     gap: 14,
   },
   heroCard: {

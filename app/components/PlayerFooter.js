@@ -18,16 +18,16 @@ const PlayerFooter = ({ activeTab }) => {
       screen: "PlayerSchedule",
     },
     {
-      id: "TeamInfo",
+      id: "LeagueSchedule",
       label: "팀정보",
       icon: "account-group",
-      screen: "TeamInfo",
+      screen: "LeagueSchedule",
     },
     {
-      id: "LeagueSchedule",
+      id: "leagueGameSchedule",
       label: "리그일정",
       icon: "format-list-bulleted",
-      screen: "LeagueSchedule",
+      screen: "leagueGameSchedule",
     },
     {
       id: "UserInfo",

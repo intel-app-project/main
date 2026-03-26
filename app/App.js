@@ -35,11 +35,7 @@ export default function App() {
           />
           <Stack.Screen name="GameDetail" component={GameDetailScreen} />
           <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
-          <Stack.Screen name="TeamInfo" component={TeamInfoScreen} />
-          <Stack.Screen
-            name="LeagueGameSchedule"
-            component={LeagueGameScheduleScreen}
-          />
+          <Stack.Screen name="leagueGameSchedule" component={LeagueGameScheduleScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

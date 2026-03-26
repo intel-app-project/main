@@ -14,13 +14,14 @@ import {
   TEAM_API_ENDPOINT,
 } from "../constants/scheduleConstants";
 import { styles } from "./leagueGameScheduleScreen.styles";
+import PlayerFooter from "../components/PlayerFooter";
 
 const INITIAL_VISIBLE_COUNT = 8;
 const LOAD_MORE_COUNT = 3;
 const STADIUM_NAME = "수원 KT 위즈파크";
 const STADIUM_IMAGE_URI =
   "https://i.namu.wiki/i/s5el6DSDQjJetZbb2WxKe-H8PtDQ6dfeZuMSKUtyro-XpSYN-lY2F-baCLWr_IqPi6nTTNQpa5zjc18gyN5xX01x2hKrAn65EKGflZmbyF1C5-hjFB2Te6mPOGzUeimD3AwO-qVSNz_C8nQSgaaozA.webp";
-const MESSAGE_NEXT_MATCH = "최근 경기";
+const MESSAGE_NEXT_MATCH = "다음 경기";
 const MESSAGE_NO_NEAREST = "표시할 예정 경기가 없습니다.";
 const MESSAGE_UPCOMING = "남은 경기 일정";
 const MESSAGE_LOAD_ERROR = "리그 경기 일정을 불러오지 못했습니다.";
@@ -338,6 +339,7 @@ const LeagueGameScheduleScreen = () => {
           )}
         </View>
       </ScrollView>
+      <PlayerFooter activeTab="leagueGameSchedule" />
     </SafeAreaView>
   );
 };
