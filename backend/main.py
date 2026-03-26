@@ -76,6 +76,23 @@ class AttendanceUpdatePayload(BaseModel):
     status: str
 
 
+class ScheduleLineupUpdate(BaseModel):
+    P: str | None = None
+    C: str | None = None
+    oneB: str | None = None # 1B is not a valid python identifier
+    twoB: str | None = None
+    threeB: str | None = None
+    SS: str | None = None
+    LF: str | None = None
+    CF: str | None = None
+    RF: str | None = None
+
+    class Config:
+        # To handle '1B', '2B', etc. from JSON
+        populate_by_name = True
+        alias_generator = lambda s: s.replace('one', '1').replace('two', '2').replace('three', '3')
+
+
 @app.get("/api/hello")
 def read_hello():
     return {"message": "Supabase connection is ready."}
@@ -102,10 +119,22 @@ def create_schedule(schedule: ScheduleCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Schedule 데이터 조회 핸들러
-@app.get("/api/schedule") 
-def get_Schedule():
-    # deleted_at이 null인 데이터만 조회 (소프트 딜리트 필터링)
-    response = supabase.table("schedule").select("*").is_("deleted_at", "null").execute()
+@app.get("/api/schedule")
+def get_schedules():
+    response = supabase.table("schedule").select("*").is_("deleted_at", "null").order("date").execute()
+    return response.data
+
+@app.get("/api/schedule/team/{team_id}")
+def get_schedules_by_team(team_id: int):
+    # home 팀 또는 away 팀인 모든 경기 정보를 가져옴
+    response = (
+        supabase.table("schedule")
+        .select("*")
+        .or_(f"home.eq.{team_id},away.eq.{team_id}")
+        .is_("deleted_at", "null")
+        .order("date")
+        .execute()
+    )
     return response.data
 
 @app.delete("/api/schedule/{schedule_id}")
@@ -130,6 +159,22 @@ def update_schedule(schedule_id: int, schedule: ScheduleCreate):
         }
         response = supabase.table("schedule").update(data).eq("id", schedule_id).execute()
         return {"message": "일정이 성공적으로 수정되었습니다.", "data": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/schedule/date/{date}")
+def get_schedule_by_date(date: str):
+    try:
+        response = supabase.table("schedule").select("*").eq("date", date).is_("deleted_at", "null").execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/schedule/{date}/lineup")
+def update_lineup(date: str, lineup: dict): # Using dict to be flexible with '1B' keys
+    try:
+        response = supabase.table("schedule").update({"lineup": lineup}).eq("date", date).execute()
+        return {"message": "라인업이 성공적으로 저장되었습니다.", "data": response.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -136,18 +136,24 @@ const ManagerScheduleScreen = ({ navigation }) => {
               )}
             </View>
              <View style={styles.actionButtons}>
-               <TouchableOpacity 
-                 style={styles.editButton} 
-                 onPress={() => handleEdit(item)}
-               >
-                 <Text style={styles.editButtonText}>수정</Text>
-               </TouchableOpacity>
-               <TouchableOpacity 
-                 style={styles.deleteButton} 
-                 onPress={() => handleDelete(item.id)}
-               >
-                 <Text style={styles.deleteButtonText}>삭제</Text>
-               </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.editButton} 
+                  onPress={() => handleEdit(item)}
+                >
+                  <Text style={styles.editButtonText}>수정</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.editButton} 
+                  onPress={() => navigation.navigate('Lineup', { targetDate: item.date })}
+                >
+                  <Text style={styles.editButtonText}>라인업</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.deleteButton} 
+                  onPress={() => handleDelete(item.id)}
+                >
+                  <Text style={styles.deleteButtonText}>삭제</Text>
+                </TouchableOpacity>
              </View>
           </View>
           <Text style={styles.itemText}>홈팀 ID: {item.home} / 원정팀 ID: {item.away}</Text>
