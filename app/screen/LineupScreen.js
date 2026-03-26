@@ -237,6 +237,14 @@ const LineupScreen = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#4a7c59" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -261,14 +269,14 @@ const LineupScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {activeTab === 'defense' ? (
           <View style={styles.fieldSection}>
             <View style={styles.fieldCard}>
               <View style={{flexDirection: 'row', justifyContent: 'space-between', width: '100%'}}>
                   <Text style={styles.sectionTitle}>Defensive Alignment</Text>
-                  <TouchableOpacity onPress={handleAutoBench} style={{backgroundColor: 'rgba(255,181,153,0.1)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 5}}>
-                      <Text style={{color: '#ffb599', fontSize: 10, fontWeight: 'bold'}}>나머지 인원 일괄 후보 등록</Text>
+                  <TouchableOpacity onPress={handleAutoBench} style={{backgroundColor: 'rgba(74, 124, 89, 0.1)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 5}}>
+                      <Text style={{color: '#4a7c59', fontSize: 10, fontWeight: 'bold'}}>나머지 인원 일괄 후보 등록</Text>
                   </TouchableOpacity>
               </View>
               <View style={styles.diamond}>
@@ -287,7 +295,7 @@ const LineupScreen = () => {
                   </View>
                   <PositionSlot pos="P" name={lineup.defense.P} highlight />
                   <PositionSlot pos="C" name={lineup.defense.C} />
-                  <View style={{marginTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,181,153,0.1)', width: '100%', alignItems: 'center', paddingTop: 10}}>
+                  <View style={{marginTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(46, 50, 48, 0.08)', width: '100%', alignItems: 'center', paddingTop: 10}}>
                     <PositionSlot pos="DH" name={lineup.defense.DH} />
                   </View>
               </View>
@@ -331,21 +339,26 @@ const LineupScreen = () => {
                 <Text style={styles.memberName}>
                   {member.Name || member.name || member.User_ID}
                   {activeTab === 'defense' && (
-                      <Text style={{color: 'rgba(255,255,255,0.5)', fontSize: 12}}> ({member.Primary_Position || '미정'})</Text>
+                      <Text style={{color: 'rgba(46, 50, 48, 0.5)', fontSize: 12}}> ({member.Primary_Position || '미정'})</Text>
                   )}
-                  <Text style={{color: '#ffb599', fontSize: 13}}> [{assignedPos || "미배정"}]</Text>
+                  <Text style={{color: '#705c30', fontSize: 13}}> [{assignedPos || "미배정"}]</Text>
                 </Text>
                 <View style={styles.posButtons}>
                   {activeTab === 'defense' ? (
-                    POSITIONS.map(pos => (
-                      <TouchableOpacity 
-                        key={pos} 
-                        onPress={() => assignMember(pos, member)}
-                        style={[styles.posBtn, (pos === 'BENCH' ? (lineup.defense.BENCH || []).includes(memberName) : (lineup.defense[pos] || "").toString().trim() === memberName) && styles.posBtnActive]}
-                      >
-                        <Text style={styles.posBtnText}>{pos}</Text>
-                      </TouchableOpacity>
-                    ))
+                    POSITIONS.map(pos => {
+                      const isActive = pos === 'BENCH' 
+                        ? (lineup.defense.BENCH || []).includes(memberName) 
+                        : (lineup.defense[pos] || "").toString().trim() === memberName;
+                      return (
+                        <TouchableOpacity 
+                          key={pos} 
+                          onPress={() => assignMember(pos, member)}
+                          style={[styles.posBtn, isActive && styles.posBtnActive]}
+                        >
+                          <Text style={[styles.posBtnText, isActive && styles.posBtnTextActive]}>{pos}</Text>
+                        </TouchableOpacity>
+                      );
+                    })
                   ) : (
                     <TouchableOpacity 
                       disabled={!isEligibleForBatting}
@@ -353,11 +366,15 @@ const LineupScreen = () => {
                       style={[
                         styles.posBtn, 
                         lineup.batting.some(n => (n || "").toString().trim() === memberName) && styles.posBtnActive, 
-                        !isEligibleForBatting && {backgroundColor: '#222', opacity: 0.5},
+                        !isEligibleForBatting && {backgroundColor: 'rgba(46, 50, 48, 0.05)', opacity: 0.5},
                         {paddingHorizontal: 20}
                       ]}
                     >
-                      <Text style={[styles.posBtnText, !isEligibleForBatting && {color: '#666'}]}>
+                      <Text style={[
+                        styles.posBtnText, 
+                        lineup.batting.some(n => (n || "").toString().trim() === memberName) && styles.posBtnTextActive, 
+                        !isEligibleForBatting && {color: 'rgba(46, 50, 48, 0.3)'}
+                      ]}>
                         {isEligibleForBatting ? "배정" : (hasDH && isPitcher ? "DH사용됨" : "수비필요")}
                       </Text>
                     </TouchableOpacity>

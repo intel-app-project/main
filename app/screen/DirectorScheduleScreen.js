@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
+import { styles } from "./DirectorScheduleScreen.styles";
 
 const DirectorScheduleScreen = () => {
     const navigation = useNavigation();
@@ -43,127 +44,44 @@ const DirectorScheduleScreen = () => {
 
             {loading ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#ffb599" />
+                    <ActivityIndicator size="large" color="#4a7c59" />
                 </View>
             ) : schedules.length === 0 ? (
                 <View style={styles.center}>
                     <Text style={styles.emptyText}>예정된 경기가 없습니다.</Text>
                 </View>
             ) : (
-                <ScrollView contentContainerStyle={styles.scrollContent}>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <Text style={styles.subTitle}>감독님 팀(Team {teamId})의 예정된 경기 목록입니다.</Text>
-                    {schedules.map((item) => (
-                        <TouchableOpacity 
-                            key={item.id} 
-                            style={styles.card}
-                            onPress={() => navigation.navigate("Lineup", { targetDate: item.date })}
-                        >
-                            <View style={styles.cardLeft}>
-                                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 5}}>
-                                    <Text style={styles.dateText}>{formatDate(item.date)}</Text>
-                                    <View style={[styles.tag, item.home === teamId ? styles.homeTag : styles.awayTag]}>
-                                        <Text style={styles.tagText}>{item.home === teamId ? "HOME" : "AWAY"}</Text>
+                    {schedules.map((item) => {
+                        const isHome = item.home === teamId;
+                        return (
+                            <TouchableOpacity 
+                                key={item.id} 
+                                style={styles.card}
+                                onPress={() => navigation.navigate("Lineup", { targetDate: item.date })}
+                            >
+                                <View style={styles.cardLeft}>
+                                    <View style={styles.dateContainer}>
+                                        <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+                                        <View style={[styles.tag, isHome ? styles.homeTag : styles.awayTag]}>
+                                            <Text style={[styles.tagText, !isHome && styles.awayTagText]}>
+                                                {isHome ? "HOME" : "AWAY"}
+                                            </Text>
+                                        </View>
                                     </View>
+                                    <Text style={styles.matchText}>
+                                        {isHome ? `vs Team ${item.away}` : `at Team ${item.home}`}
+                                    </Text>
                                 </View>
-                                <Text style={styles.matchText}>
-                                    {item.home === teamId ? `vs Team ${item.away}` : `at Team ${item.home}`}
-                                </Text>
-                            </View>
-                            <Text style={styles.arrow}>〉</Text>
-                        </TouchableOpacity>
-                    ))}
+                                <Text style={styles.arrow}>〉</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </ScrollView>
             )}
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#121212",
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingTop: 60,
-        paddingBottom: 20,
-        paddingHorizontal: 20,
-        backgroundColor: "#1a1a1a",
-    },
-    backBtn: {
-        fontSize: 24,
-        color: "#fff",
-        marginRight: 15,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#fff",
-    },
-    center: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    scrollContent: {
-        padding: 20,
-    },
-    subTitle: {
-        color: "rgba(255,255,255,0.6)",
-        fontSize: 14,
-        marginBottom: 20,
-    },
-    card: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        backgroundColor: "#1e1e1e",
-        borderRadius: 12,
-        padding: 20,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: "rgba(255,181,153,0.2)",
-    },
-    cardLeft: {
-        flex: 1,
-    },
-    dateText: {
-        color: "#ffb599",
-        fontSize: 18,
-        fontWeight: "bold",
-        marginBottom: 5,
-    },
-    matchText: {
-        color: "#fff",
-        fontSize: 14,
-        opacity: 0.8,
-    },
-    arrow: {
-        color: "rgba(255,181,153,0.5)",
-        fontSize: 20,
-    },
-    emptyText: {
-        color: "rgba(255,255,255,0.4)",
-        fontSize: 16,
-    },
-    tag: {
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-        marginLeft: 10,
-    },
-    homeTag: {
-        backgroundColor: "rgba(255,181,153,0.2)",
-    },
-    awayTag: {
-        backgroundColor: "rgba(100,149,237,0.2)",
-    },
-    tagText: {
-        fontSize: 10,
-        fontWeight: "bold",
-        color: "#fff",
-    }
-});
 
 export default DirectorScheduleScreen;
