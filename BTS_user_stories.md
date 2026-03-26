@@ -1,4 +1,6 @@
-﻿# BTS User Stories (MVP 중심)
+﻿# BTS_project_overview.md 기획서 기반으로 작업에 필요한 userstory 생성. 스토리포인트 범위 3-13 관리.
+
+# BTS User Stories (MVP 중심)
 
 스토리포인트 기준: 3, 5, 8, 13만 사용
 

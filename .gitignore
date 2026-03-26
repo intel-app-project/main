@@ -1,1 +1,6 @@
 node_modules
+
+# Python 캐시 폴더 무시
+**/__pycache__/
+*.py[cod]
+*$py.class

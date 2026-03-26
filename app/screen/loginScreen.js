@@ -175,4 +175,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 0.5,
   },
+  errorText: {
+    color: "#a23d3d",
+    fontSize: 12,
+  },
 });
