@@ -1,5 +1,8 @@
 fastapi==0.135.1
 uvicorn==0.41.0
-pydantic==2.12.52.0
+pydantic==2.12.5
 starlette==0.52.1
 python-dotenv==1.2.1
+supabase==2.28.3
+pandas==2.2.3
+python-multipart==0.0.22

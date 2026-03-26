@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Alert } from "react-native";
 
-const API_BASE_URL = "http://172.30.1.84:8000";
+const API_BASE_URL = "http://172.30.1.42:8000";
 const SCHEDULE_API_ENDPOINT = "/api/schedule";
 
 const ManagerScheduleScreen = ({ onNavigate }) => {
@@ -179,7 +179,7 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>경기 일정 관리</Text>
+      <Text style={styles.title}>!!경기 일정 관리</Text>
 
       {/* 등록 폼 */}
       <View style={styles.formContainer}>
@@ -243,7 +243,7 @@ const ManagerScheduleScreen = ({ onNavigate }) => {
         )}
       </View>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('recorder')}>
+      <TouchableOpacity style={styles.backButton} onPress={() => onNavigate('login')}>
          <Text style={styles.backButtonText}>돌아가기</Text>
       </TouchableOpacity>
     </View>

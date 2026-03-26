@@ -47,7 +47,7 @@ const LoginScreen = ({ onNavigate }) => {
       if (position === "감독") {
         onNavigate("director");
       } else if (position === "기록원") {
-        onNavigate("recorder");
+        onNavigate("managerSchedule");
       } else {
         // 그 외 (선수 등)
         onNavigate("player");
