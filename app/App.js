@@ -9,9 +9,10 @@ import PlayerScheduleScreen from "./screen/playerScheduleScreen";
 import GameDetailScreen from "./screen/gameDetailScreen";
 import PlayerDetailScreen from "./screen/playerDetailScreen";
 import LeagueGameScheduleScreen from "./screen/leagueGameScheduleScreen";
-import LineupScreen from "./screen/LineupScreen";
+import LineupScreen from "./screen/lineupScreen";
 import MyGameScreen from "./screen/myGame";
-import TeamInfoScreen from "./screen/TeamInfoScreen";
+import TeamInfoScreen from "./screen/teamInfoScreen";
+import DirectorScheduleScreen from "./screen/directorScheduleScreen";
 
 const Stack = createStackNavigator();
 
@@ -29,11 +30,12 @@ export default function App() {
           <Stack.Screen name="PlayerSchedule" component={PlayerScheduleScreen} />
           <Stack.Screen name="ManagerSchedule" component={ManagerScheduleScreen} />
           <Stack.Screen name="GameDetail" component={GameDetailScreen} />
-          <Stack.Screen name="myGame" component={MyGameScreen} />
-          <Stack.Screen name="LineupScreen" component={LineupScreen} />
+          <Stack.Screen name="MyGame" component={MyGameScreen} />
+          <Stack.Screen name="Lineup" component={LineupScreen} />
           <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
-          <Stack.Screen name="leagueGameSchedule" component={LeagueGameScheduleScreen} />
+          <Stack.Screen name="LeagueGameSchedule" component={LeagueGameScheduleScreen} />
           <Stack.Screen name="TeamInfo" component={TeamInfoScreen} />
+          <Stack.Screen name="DirectorSchedule" component={DirectorScheduleScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

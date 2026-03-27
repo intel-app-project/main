@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import { supabase } from "../lib/supabase";
-import { styles } from "./DirectorScheduleScreen.styles";
-import DirectorFooter from "../components/DirectorFooter";
+import { styles } from "./directorScheduleScreen.styles";
+import CommonFooter from "../components/CommonFooter";
 import CommonHeader from "../components/CommonHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -81,7 +80,6 @@ const DirectorScheduleScreen = ({navigation, route}) => {
     return (
         <SafeAreaView style={styles.container}>
             <CommonHeader title="DirectorScheduleScreen" />
-            <DirectorFooter activeTab="leagueGameSchedule" />
 
             {loading ? (
                 <View style={styles.center}>
@@ -95,7 +93,7 @@ const DirectorScheduleScreen = ({navigation, route}) => {
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <Text style={styles.subTitle}>감독님 팀(Team {teamId})의 예정된 경기 목록입니다.</Text>
                     {schedules.map((item) => {
-                        const isHome = item.home === teamId;
+                        const teamSchedule = item.home === teamId || item.away === teamId;
                         return (
                             <View key={item.id} style={styles.card}>
                                 {/* 경기 정보 영역 */}
@@ -103,14 +101,14 @@ const DirectorScheduleScreen = ({navigation, route}) => {
                                     <View style={styles.cardLeft}>
                                         <View style={styles.dateContainer}>
                                             <Text style={styles.dateText}>{formatDate(item.date)}</Text>
-                                            <View style={[styles.tag, isHome ? styles.homeTag : styles.awayTag]}>
-                                                <Text style={[styles.tagText, !isHome && styles.awayTagText]}>
-                                                    {isHome ? "HOME" : "AWAY"}
+                                            <View style={[styles.tag, teamSchedule ? styles.homeTag : styles.awayTag]}>
+                                                <Text style={[styles.tagText, !teamSchedule && styles.awayTagText]}>
+                                                    {teamSchedule ? "HOME" : "AWAY"}
                                                 </Text>
                                             </View>
                                         </View>
                                         <Text style={styles.matchText}>
-                                            {isHome ? `vs Team ${item.away}` : `at Team ${item.home}`}
+                                            {teamSchedule ? `vs Team ${item.away}` : `at Team ${item.home}`}
                                         </Text>
                                     </View>
                                 </View>
@@ -129,6 +127,7 @@ const DirectorScheduleScreen = ({navigation, route}) => {
                     })}
                 </ScrollView>
             )}
+            <CommonFooter activeTab="DirectorSchedule" />
         </SafeAreaView>
     );
 };

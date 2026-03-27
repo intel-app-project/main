@@ -4,8 +4,8 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import { POSITIONS, INITIAL_LINEUP, BATTING_ORDERS } from "../constants/scheduleConstants";
 import { parseJsonField } from "../utils/scheduleUtils";
-import { styles } from "./LineupScreen.styles";
-import DirectorFooter from "../components/DirectorFooter";
+import { styles } from "./lineupScreen.styles";
+import CommonFooter from "../components/CommonFooter";
 import CommonHeader from "../components/CommonHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -460,7 +460,7 @@ const LineupScreen = () => {
           <Text style={styles.saveBtnText}>라인업 저장하기</Text>
         </TouchableOpacity>
       </ScrollView>
-      <DirectorFooter activeTab="LeagueSchedule" />
+      <CommonFooter activeTab="Lineup" />
     </SafeAreaView>
   );
 };

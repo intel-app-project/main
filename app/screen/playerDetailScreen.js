@@ -12,7 +12,7 @@ import Svg, { Polygon, Text as SvgText } from "react-native-svg";
 import { styles } from "./playerDetailScreen.styles";
 import { supabase } from "../lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import PlayerFooter from "../components/PlayerFooter";
+import CommonFooter from "../components/CommonFooter";
 import CommonHeader from "../components/CommonHeader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -570,7 +570,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
         )}
 
       </ScrollView>
-      <PlayerFooter activeTab="UserInfo" />
+      <CommonFooter activeTab="PlayerDetail" />
     </SafeAreaView>
   );
 };

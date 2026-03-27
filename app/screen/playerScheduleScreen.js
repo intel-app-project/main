@@ -33,7 +33,7 @@ import {
   toDateKey,
 } from "../utils/scheduleUtils";
 import { styles } from "./playerScheduleScreen.styles";
-import PlayerFooter from "../components/PlayerFooter";
+import CommonFooter from "../components/CommonFooter";
 import CommonHeader from "../components/CommonHeader";
 
 const PlayerScheduleScreen = ({ route }) => {
@@ -496,7 +496,7 @@ const PlayerScheduleScreen = ({ route }) => {
         </ScrollView>
       </View>
 
-      <PlayerFooter activeTab="TeamSchedule" />
+      <CommonFooter activeTab="PlayerSchedule" />
     </SafeAreaView>
   );
 };

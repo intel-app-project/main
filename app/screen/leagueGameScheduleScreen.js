@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -16,7 +15,7 @@ import {
   TEAM_API_ENDPOINT,
 } from "../constants/scheduleConstants";
 import { styles } from "./leagueGameScheduleScreen.styles";
-import PlayerFooter from "../components/PlayerFooter";
+import CommonFooter from "../components/CommonFooter";
 import CommonHeader from "../components/CommonHeader";
 
 const INITIAL_VISIBLE_COUNT = 8;
@@ -358,7 +357,7 @@ const LeagueGameScheduleScreen = () => {
           )}
         </View>
       </ScrollView>
-      <PlayerFooter activeTab="leagueGameSchedule" />
+      <CommonFooter activeTab="LeagueGameSchedule" />
     </SafeAreaView>
   );
 };

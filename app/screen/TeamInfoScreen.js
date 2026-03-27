@@ -13,8 +13,7 @@ import { INITIAL_LINEUP } from "../constants/scheduleConstants";
 import { parseJsonField } from "../utils/scheduleUtils";
 import { styles } from "./TeamInfoScreen.styles";
 import CommonHeader from "../components/CommonHeader";
-import DirectorFooter from "../components/DirectorFooter";
-import PlayerFooter from "../components/PlayerFooter";
+import CommonFooter from "../components/CommonFooter";
 
 
 const TeamInfoScreen = () => {
@@ -42,11 +41,7 @@ const TeamInfoScreen = () => {
       
       // 2. 현재 로그인한 사용자의 팀(Team ID) 식별
       // route.params.id는 Id(숫자) 또는 User_ID(문자열)일 수 있음
-      const currentUser = memData.find(m => 
-        (m.Id && m.Id.toString() === id?.toString()) || 
-        (m.User_ID && m.User_ID === id)
-      );
-
+      const currentUser = memData.find(m => m.Id === id);
       const myTeamId = currentUser?.Team;
 
       // 3. 팀 정보 가져오기
@@ -155,7 +150,7 @@ const TeamInfoScreen = () => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>베스트 라인업</Text>
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>BEST 9</Text>
+                <Text style={styles.badgeText}>BEST 10</Text>
               </View>
             </View>
 
@@ -220,15 +215,8 @@ const TeamInfoScreen = () => {
             )}
           </View>
         </View>
-
       </ScrollView>
-
-      {/* Footer 분기처리 */}
-      {isDirector ? (
-        <DirectorFooter activeTab="LeagueSchedule" />
-      ) : (
-        <PlayerFooter activeTab="LeagueSchedule" />
-      )}
+      <CommonFooter activeTab="TeamInfo" />
     </SafeAreaView>
   );
 };

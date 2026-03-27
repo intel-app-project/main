@@ -7,6 +7,12 @@ const CommonHeader = ({ title }) => {
   return (
     <View style={[styles.topBar, { paddingTop: 10 }]}>
       <Text style={styles.topBarTitle}>{title}</Text>
+      {title === "playerDetailScreen" && <TouchableOpacity
+        style={styles.topBarTitle}
+        onPress={() => navigation.popToTop()}
+      >
+        <Text style={styles.topBarTitle}>로그아웃</Text>
+      </TouchableOpacity>}
     </View>
   );
 };

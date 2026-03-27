@@ -21,7 +21,7 @@ import {
   resolveMember,
 } from "../utils/scheduleUtils";
 import CommonHeader from "../components/CommonHeader";
-import PlayerFooter from "../components/PlayerFooter";
+import CommonFooter from "../components/CommonFooter";
 import { styles } from "./myGame.styles";
 
 const EMPTY_LINEUP = {
@@ -379,7 +379,7 @@ const MyGameScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </ScrollView>
       )}
-      <PlayerFooter activeTab="MyGame" />
+      <CommonFooter activeTab="MyGame" />
     </SafeAreaView>
   );
 };
