@@ -47,11 +47,11 @@ const LoginScreen = ({ navigation }) => {
       const position = data.Primary_Position;
 
       if (position === "감독") {
-        navigation.navigate("PlayerSchedule", { id: data.Id });
+        navigation.navigate("myGame", { id: data.Id });
       } else if (position === "기록원") {
         navigation.navigate("ManagerSchedule", { id: data.Id });
       } else {
-        navigation.navigate("PlayerSchedule", { id: data.Id });
+        navigation.navigate("myGame", { id: data.Id });
       }
     } catch (err) {
       Alert.alert("오류", "로그인 처리 중 문제가 발생했습니다.");
