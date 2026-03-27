@@ -11,6 +11,7 @@ import PlayerDetailScreen from "./screen/playerDetailScreen";
 import LeagueGameScheduleScreen from "./screen/leagueGameScheduleScreen";
 import LineupScreen from "./screen/LineupScreen";
 import DirectorScheduleScreen from "./screen/DirectorScheduleScreen";
+import MyGameScreen from "./screen/myGame";
 
 const Stack = createStackNavigator();
 
@@ -29,6 +30,7 @@ export default function App() {
           <Stack.Screen name="PlayerSchedule" component={PlayerScheduleScreen} />
           <Stack.Screen name="ManagerSchedule" component={ManagerScheduleScreen} />
           <Stack.Screen name="GameDetail" component={GameDetailScreen} />
+          <Stack.Screen name="myGame" component={MyGameScreen} />
           <Stack.Screen name="LineupScreen" component={LineupScreen} />
           <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
           <Stack.Screen name="leagueGameSchedule" component={LeagueGameScheduleScreen} />

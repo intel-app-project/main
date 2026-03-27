@@ -12,14 +12,20 @@ const PlayerFooter = ({ activeTab }) => {
 
   const tabs = [
     {
+      id: "MyGame",
+      label: "내경기",
+      icon: "baseball",
+      screen: "myGame",
+    },
+    {
       id: "TeamSchedule",
-      label: "팀일정",
+      label: "일정관리",
       icon: "calendar-month",
       screen: "PlayerSchedule",
     },
     {
       id: "LeagueSchedule",
-      label: "팀정보",
+      label: "라인업",
       icon: "account-group",
       screen: "LineupScreen",
     },
@@ -31,7 +37,7 @@ const PlayerFooter = ({ activeTab }) => {
     },
     {
       id: "UserInfo",
-      label: "유저정보",
+      label: "내정보",
       icon: "account",
       screen: "PlayerDetail",
     },
@@ -42,9 +48,15 @@ const PlayerFooter = ({ activeTab }) => {
   };
 
   return (
-    <View style={[styles.container, { height: 60 + insets.bottom, paddingBottom: insets.bottom || 10 }]}>
+    <View
+      style={[
+        styles.container,
+        { height: 60 + insets.bottom, paddingBottom: insets.bottom || 10 },
+      ]}
+    >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
+
         return (
           <TouchableOpacity
             key={tab.id}
