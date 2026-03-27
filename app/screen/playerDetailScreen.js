@@ -20,7 +20,6 @@ const CARD_WIDTH = SCREEN_WIDTH - 24; // Based on 12px horizontal padding
 
 const PlayerDetailScreen = ({navigation, route}) => {
   const { id } = route.params;
-  const targetId = id; 
 
 
   const [loading, setLoading] = useState(true);
@@ -45,15 +44,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
 
   useEffect(() => {
     fetchPlayerData();
-  }, [id]);
-
-  const handleBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate("Director"); 
-    }
-  };
+  }, []);
 
   const fetchPlayerData = async () => {
     try {
@@ -73,24 +64,8 @@ const PlayerDetailScreen = ({navigation, route}) => {
         ip: "0.0", kSum: 0, bbSum: 0, hitsAllowed: 0
       });
 
-      if (targetId === undefined || targetId === null) {
-        throw new Error("사용자 식별 정보가 없습니다.");
-      }
-
-      let query = supabase.from("member").select("*");
-      
-      const isStringId = typeof targetId === "string" && targetId.startsWith("user");
-      
-      if (isStringId) {
-        query = query.eq("User_ID", targetId);
-      } else {
-        query = query.eq("Id", targetId);
-      }
-
-      const { data: memberData, error: memberError } = await query.single();
-
-      if (memberError) throw memberError;
-
+      const query = supabase.from("member").select("*").eq("Id", id);
+      const { data: memberData } = await query.single();
 
       setMember(memberData);
 
@@ -103,7 +78,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
         setTeam(teamData);
       }
 
-      const { data: allGames, error: gamesError } = await supabase
+      const { data: allGames } = await supabase
         .from("game")
         .select("*")
         .or(`batter_id.eq.${memberData.Id},pitcher_id.eq.${memberData.Id}`)
@@ -180,7 +155,6 @@ const PlayerDetailScreen = ({navigation, route}) => {
     const slg = ab > 0 ? (hits - dbl - tpl - hr + dbl*2 + tpl*3 + hr*4) / ab : 0;
     const clutch = rispAB > 0 ? rispHits / rispAB : 0;
 
-    const activeMember = currentMemberData || member;
     setHitterStats({
       contact: Math.min(100, Math.round(avg * 250)),
       power: Math.min(100, Math.round(slg * 150)),
@@ -223,7 +197,6 @@ const PlayerDetailScreen = ({navigation, route}) => {
     const ipPart = outs % 3;
     const ipStr = `${ipFull}.${ipPart}`;
     const ipDec = outs / 3 || 0.1;
-    
     const era = (r * 9) / ipDec;
     const whip = (h + bb) / ipDec;
     const k9 = (k * 9) / ipDec;
@@ -243,16 +216,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
       bbSum: bb,
       hitsAllowed: h,
       avgSpeed: 0
-    });
-
-    const activeMember = currentMemberData || member;
-    if (activeMember) {
-      console.log(`[DEBUG] Stats for ID ${activeMember.Id}:`, {
-        bb,
-        games: games.length,
-        control: games.length > 0 ? Math.max(0, Math.min(100, Math.round(100 - (bb / games.length) * 200))) : 0
-      });
-    }
+    });    
   };
 
   const RadarChart = ({ data, activeRole }) => {
