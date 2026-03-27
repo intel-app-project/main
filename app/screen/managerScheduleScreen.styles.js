@@ -4,15 +4,7 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#faf6f0",
-    paddingTop: 60,
     width: "100%",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#4a7c59",
-    paddingHorizontal: 24,
-    marginBottom: 10,
   },
   formContainer: {
     paddingHorizontal: 24,
@@ -125,23 +117,6 @@ export const styles = StyleSheet.create({
     color: "#705c30",
     marginTop: 40,
     textAlign: "center",
-  },
-  backButton: {
-    marginHorizontal: 24,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#4a7c59",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 40,
-    marginTop: 10,
-  },
-  backButtonText: {
-    color: "#4a7c59",
-    fontSize: 16,
-    fontWeight: "700",
   },
   actionButtons: {
     flexDirection: 'row',

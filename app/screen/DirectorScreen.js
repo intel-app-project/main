@@ -2,12 +2,15 @@ import React from 'react';
 import { Text, View, TouchableOpacity } from 'react-native';
 import { styles } from "./DirectorScreen.styles";
 import DirectorFooter from "../components/DirectorFooter";
+import CommonHeader from "../components/CommonHeader";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const DirectorScreen = ({ navigation, route }) => {
   const { id } = route.params || {};
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <CommonHeader title="DirectorScreen" />
       <DirectorFooter activeTab="leagueGameSchedule" />
 
       <Text style={styles.roleText}>감독</Text>
@@ -27,7 +30,7 @@ const DirectorScreen = ({ navigation, route }) => {
       </TouchableOpacity>
       
       <DirectorFooter activeTab="leagueGameSchedule" />
-    </View>
+    </SafeAreaView>
   );
 };
 

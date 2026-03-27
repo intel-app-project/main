@@ -14,19 +14,11 @@ export const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 12,
   },
-  pageHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 24,
     gap: 12,
-  },
-  pageTitle: {
-    flex: 1,
-    fontSize: 30,
-    lineHeight: 34,
-    color: "#2e322f",
-    fontWeight: "700",
-    marginBottom: 2,
   },
   switchUserButton: {
     borderWidth: 1,
@@ -209,6 +201,23 @@ export const styles = StyleSheet.create({
     color: "#7b776f",
     fontSize: 26,
     fontWeight: "700",
+  },
+  todayButton: {
+    position: "absolute",
+    right: 0,
+    height: 36,
+    justifyContent: "center",
+    backgroundColor: "rgba(74, 124, 89, 0.08)",
+    paddingHorizontal: 5,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(74, 124, 89, 0.15)",
+  },
+  todayButtonText: {
+    color: "#4a7c59",
+    fontSize: 12,
+    fontWeight: "800",
   },
   weekHeader: {
     flexDirection: "row",

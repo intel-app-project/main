@@ -14,6 +14,8 @@ import {
   TEAM_API_ENDPOINT,
 } from "../constants/scheduleConstants";
 import { styles } from "./gameDetailScreen.styles";
+import CommonHeader from "../components/CommonHeader";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const DEFAULT_MATCH_TIME = "12:00 PM";
 const DEFAULT_STADIUM_NAME = "수원KT위즈파크";
@@ -350,19 +352,8 @@ const GameDetailScreen = ({navigation, route}) => {
   const visibleUndecided = undecided.slice(0, visibleUndecidedCount);
 
   return (
-    <View style={styles.safeArea}>
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.iconText}>{"<"}</Text>
-        </TouchableOpacity>
-        <Text style={styles.topBarTitle}>MATCH DETAILS</Text>
-        <TouchableOpacity style={styles.iconButton}>
-          <Text style={styles.iconText}>...</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <CommonHeader title="gameDetailScreen" />
 
       {loading ? (
         <View style={styles.loadingWrap}>
@@ -537,7 +528,7 @@ const GameDetailScreen = ({navigation, route}) => {
           </TouchableOpacity>
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -35,6 +35,7 @@ import {
 } from "../utils/scheduleUtils";
 import { styles } from "./playerScheduleScreen.styles";
 import PlayerFooter from "../components/PlayerFooter";
+import CommonHeader from "../components/CommonHeader";
 
 const PlayerScheduleScreen = ({ navigation, route }) => {
   const { id } = route.params;
@@ -392,22 +393,12 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <CommonHeader title="playerScheduleScreen" />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>
-            {memberName ? `${memberName}의 일정` : "일정"}
-          </Text>
-          <TouchableOpacity
-            style={styles.switchUserButton}
-            onPress={() => navigation.navigate("Login")}
-          >
-            <Text style={styles.switchUserText}>사용자 변경</Text>
-          </TouchableOpacity>
-        </View>
 
         {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
 
@@ -505,6 +496,12 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
                 <Text style={styles.calendarArrow}>›</Text>
               </TouchableOpacity>
             </View>
+            {/* <TouchableOpacity
+              style={styles.todayButton}
+              onPress={handleResetCalendarMonth}
+            >
+              <Text style={styles.todayButtonText}> 오늘 </Text>
+            </TouchableOpacity> */}
           </View>
           <View style={styles.weekHeader}>
             {WEEKDAY_LABELS.map((day) => (

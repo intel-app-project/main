@@ -1,5 +1,4 @@
 import "react-native-gesture-handler";
-import React from "react";
 import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -30,7 +29,7 @@ export default function App() {
           <Stack.Screen name="PlayerSchedule" component={PlayerScheduleScreen} />
           <Stack.Screen name="ManagerSchedule" component={ManagerScheduleScreen} />
           <Stack.Screen name="GameDetail" component={GameDetailScreen} />
-          <Stack.Screen name="Lineup" component={LineupScreen} />
+          <Stack.Screen name="LineupScreen" component={LineupScreen} />
           <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
           <Stack.Screen name="leagueGameSchedule" component={LeagueGameScheduleScreen} />
         </Stack.Navigator>

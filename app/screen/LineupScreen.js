@@ -6,6 +6,8 @@ import { POSITIONS, INITIAL_LINEUP, BATTING_ORDERS } from "../constants/schedule
 import { parseJsonField } from "../utils/scheduleUtils";
 import { styles } from "./LineupScreen.styles";
 import DirectorFooter from "../components/DirectorFooter";
+import CommonHeader from "../components/CommonHeader";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 const LineupScreen = () => {
@@ -248,14 +250,8 @@ const LineupScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <DirectorFooter activeTab="leagueGameSchedule" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>라인업 구성 ({targetDate})</Text>
-      </View>
+    <SafeAreaView style={styles.container}>
+      <CommonHeader title="LineupScreen" />
 
       <View style={styles.tabContainer}>
         <TouchableOpacity 
@@ -393,7 +389,7 @@ const LineupScreen = () => {
         </TouchableOpacity>
       </ScrollView>
       <DirectorFooter activeTab="leagueGameSchedule" />
-    </View>
+    </SafeAreaView>
   );
 };
 

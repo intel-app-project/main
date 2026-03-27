@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Text, View, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Alert } from "react-native";
 
 import { styles } from "./managerScheduleScreen.styles";
+import CommonHeader from "../components/CommonHeader";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { 
   deleteSchedule, 
   saveSchedule, 
@@ -165,8 +167,8 @@ const ManagerScheduleScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>!!경기 일정 관리</Text>
+    <SafeAreaView style={styles.container}>
+      <CommonHeader title="managerScheduleScreen" />
 
       {/* 등록 폼 */}
       <View style={styles.formContainer}>
@@ -230,10 +232,7 @@ const ManagerScheduleScreen = ({ navigation }) => {
         )}
       </View>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Login')}>
-         <Text style={styles.backButtonText}>돌아가기</Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 

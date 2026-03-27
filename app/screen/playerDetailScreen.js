@@ -13,6 +13,7 @@ import { styles } from "./playerDetailScreen.styles";
 import { supabase } from "../lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import PlayerFooter from "../components/PlayerFooter";
+import CommonHeader from "../components/CommonHeader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - 24; // Based on 12px horizontal padding
@@ -382,15 +383,10 @@ const PlayerDetailScreen = ({navigation, route}) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#4a7c59" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>선수 프로필</Text>
-        </View>
-        
-        {canPitch && canBat && (
+      <CommonHeader title="playerDetailScreen" />
+      
+      {canPitch && canBat && (
+        <View style={styles.header}>
           <View style={styles.modeToggleContainer}>
             <TouchableOpacity 
               style={[styles.modeToggleButton, activeMode === "PITCHER" && styles.modeToggleButtonActive]}
@@ -405,8 +401,8 @@ const PlayerDetailScreen = ({navigation, route}) => {
               <Text style={[styles.modeToggleText, activeMode === "HITTER" && styles.modeToggleTextActive]}>타자</Text>
             </TouchableOpacity>
           </View>
-        )}
-      </View>
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
@@ -573,10 +569,6 @@ const PlayerDetailScreen = ({navigation, route}) => {
           </>
         )}
 
-        <TouchableOpacity style={styles.actionButton} onPress={handleBack}>
-          <MaterialCommunityIcons name="arrow-left" size={18} color="#4a7c59" />
-          <Text style={styles.actionButtonText}>목록으로 돌아가기</Text>
-        </TouchableOpacity>
       </ScrollView>
       <PlayerFooter activeTab="UserInfo" />
     </SafeAreaView>

@@ -10,24 +10,9 @@ export const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    justifyContent: "center",
+    paddingVertical: 12,
     backgroundColor: "#faf6f0",
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  backButton: {
-    marginRight: 15,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: "#4a7c59",
-    fontFamily: "serif",
   },
   modeToggleContainer: {
     flexDirection: "row",

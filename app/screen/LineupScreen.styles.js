@@ -14,22 +14,6 @@ export const styles = StyleSheet.create({
     alignItems: "center", 
     backgroundColor: "#faf6f0" 
   },
-  header: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    padding: 24,
-    backgroundColor: "#faf6f0",
-  },
-  backBtn: { 
-    color: "#4a7c59", // Forest green
-    fontSize: 24, 
-    marginRight: 20 
-  },
-  headerTitle: { 
-    color: "#2e3230", // Dark charcoal
-    fontSize: 20, 
-    fontWeight: "bold" 
-  },
   scrollContent: { 
     paddingBottom: 40 
   },

@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import { supabase } from "../lib/supabase";
 import { styles } from "./DirectorScheduleScreen.styles";
 import DirectorFooter from "../components/DirectorFooter";
+import CommonHeader from "../components/CommonHeader";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 const DirectorScheduleScreen = ({navigation, route}) => {
@@ -76,14 +78,9 @@ const DirectorScheduleScreen = ({navigation, route}) => {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
+            <CommonHeader title="DirectorScheduleScreen" />
             <DirectorFooter activeTab="leagueGameSchedule" />
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backBtn}>←</Text>
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>라인업 관리 - 경기 선택</Text>
-            </View>
 
             {loading ? (
                 <View style={styles.center}>
@@ -123,8 +120,7 @@ const DirectorScheduleScreen = ({navigation, route}) => {
                     })}
                 </ScrollView>
             )}
-            <DirectorFooter activeTab="leagueGameSchedule" />
-        </View>
+        </SafeAreaView>
     );
 };
 

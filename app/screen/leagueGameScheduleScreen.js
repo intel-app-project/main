@@ -15,6 +15,7 @@ import {
 } from "../constants/scheduleConstants";
 import { styles } from "./leagueGameScheduleScreen.styles";
 import PlayerFooter from "../components/PlayerFooter";
+import CommonHeader from "../components/CommonHeader";
 
 const INITIAL_VISIBLE_COUNT = 8;
 const LOAD_MORE_COUNT = 3;
@@ -222,6 +223,7 @@ const LeagueGameScheduleScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <CommonHeader title="leagueGameScheduleScreen" />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

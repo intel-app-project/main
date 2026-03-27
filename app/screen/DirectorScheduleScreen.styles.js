@@ -7,27 +7,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#faf6f0", // Warm cream
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
-    backgroundColor: "#faf6f0",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(46, 50, 48, 0.08)",
-  },
-  backBtn: {
-    fontSize: 24,
-    color: "#4a7c59", // Forest green
-    marginRight: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#2e3230", // Dark charcoal
-    fontFamily: "Literata", // Note: Might fallback if not installed
-  },
   center: {
     flex: 1,
     justifyContent: "center",
