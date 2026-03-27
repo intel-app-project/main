@@ -373,4 +373,20 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  lineupBadge: {
+    backgroundColor: "#eef2f7",
+    borderColor: "#d0d7de",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lineupBadgeText: {
+    color: "#444c56",
+    fontSize: 13,
+    fontWeight: "700",
+  },
 });

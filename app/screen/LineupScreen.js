@@ -5,6 +5,8 @@ import { API_BASE_URL } from "../constants/commonConstants";
 import { POSITIONS, INITIAL_LINEUP, BATTING_ORDERS } from "../constants/scheduleConstants";
 import { parseJsonField } from "../utils/scheduleUtils";
 import { styles } from "./LineupScreen.styles";
+import DirectorFooter from "../components/DirectorFooter";
+
 
 const LineupScreen = () => {
   const navigation = useNavigation();
@@ -247,6 +249,7 @@ const LineupScreen = () => {
 
   return (
     <View style={styles.container}>
+      <DirectorFooter activeTab="leagueGameSchedule" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backBtn}>←</Text>
@@ -389,6 +392,7 @@ const LineupScreen = () => {
           <Text style={styles.saveBtnText}>라인업 저장하기</Text>
         </TouchableOpacity>
       </ScrollView>
+      <DirectorFooter activeTab="leagueGameSchedule" />
     </View>
   );
 };
