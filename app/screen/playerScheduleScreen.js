@@ -42,6 +42,7 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
   const [errorText, setErrorText] = useState("");
   const [memberName, setMemberName] = useState("");
   const [memberId, setMemberId] = useState(null);
+  const [userPosition, setUserPosition] = useState(null);
   const [nearestGame, setNearestGame] = useState(null);
   const [upcomingGames, setUpcomingGames] = useState([]);
   const [visibleUpcomingCount, setVisibleUpcomingCount] = useState(3);
@@ -97,10 +98,12 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
           pick(member, ["Name", "name"]) || id,
         );
         const foundMemberId = pick(member, ["Id", "id"]);
+        const foundPosition = pick(member, ["Primary_Position", "primary_position"]);
 
         if (isMounted) {
           setMemberName(foundName);
           setMemberId(foundMemberId);
+          setUserPosition(foundPosition);
         }
 
         if (scheduleRows.length === 0) {
@@ -292,6 +295,7 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
     const isAttendanceOpen = openedAttendanceKey === gameKey;
     const isSaving = savingAttendanceKey === gameKey;
     const attendancePalette = getAttendanceBadgePalette(game.attendanceStatus);
+    const isDirector = userPosition === "감독";
 
     return (
       <View key={gameKey} style={styles.listItem}>
@@ -303,40 +307,50 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
         </View>
         <View style={styles.listRight}>
           <Text style={styles.listTime}>{game.timeText}</Text>
-          <View style={styles.attendanceWrap}>
+          {isDirector ? (
             <TouchableOpacity
-              style={[
-                styles.attendanceBadge,
-                {
-                  backgroundColor: attendancePalette.backgroundColor,
-                  borderColor: attendancePalette.borderColor,
-                },
-              ]}
-              onPress={() =>
-                setOpenedAttendanceKey((currentKey) =>
-                  currentKey === gameKey ? null : gameKey,
-                )
-              }
+              style={styles.lineupBadge}
+              onPress={() => {}}
+              activeOpacity={1}
             >
-              <Text
-                style={[
-                  styles.attendanceBadgeIcon,
-                  { color: attendancePalette.option.color },
-                ]}
-              >
-                {attendancePalette.option.label}
-              </Text>
-              <Text
-                style={[
-                  styles.attendanceBadgeText,
-                  { color: attendancePalette.option.color },
-                ]}
-              >
-                {attendancePalette.option.text}
-              </Text>
+              <Text style={styles.lineupBadgeText}>라인업</Text>
             </TouchableOpacity>
-            {isAttendanceOpen ? renderAttendanceOptions(game) : null}
-          </View>
+          ) : (
+            <View style={styles.attendanceWrap}>
+              <TouchableOpacity
+                style={[
+                  styles.attendanceBadge,
+                  {
+                    backgroundColor: attendancePalette.backgroundColor,
+                    borderColor: attendancePalette.borderColor,
+                  },
+                ]}
+                onPress={() =>
+                  setOpenedAttendanceKey((currentKey) =>
+                    currentKey === gameKey ? null : gameKey,
+                  )
+                }
+              >
+                <Text
+                  style={[
+                    styles.attendanceBadgeIcon,
+                    { color: attendancePalette.option.color },
+                  ]}
+                >
+                  {attendancePalette.option.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.attendanceBadgeText,
+                    { color: attendancePalette.option.color },
+                  ]}
+                >
+                  {attendancePalette.option.text}
+                </Text>
+              </TouchableOpacity>
+              {isAttendanceOpen ? renderAttendanceOptions(game) : null}
+            </View>
+          )}
           {isSaving ? <Text style={styles.savingText}>저장 중</Text> : null}
         </View>
       </View>

@@ -6,7 +6,6 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import LoginScreen from "./screen/loginScreen";
 import ManagerScheduleScreen from "./screen/managerScheduleScreen";
-import DirectorScreen from "./screen/DirectorScreen";
 import PlayerScheduleScreen from "./screen/playerScheduleScreen";
 import GameDetailScreen from "./screen/gameDetailScreen";
 import PlayerDetailScreen from "./screen/playerDetailScreen";
@@ -27,7 +26,6 @@ export default function App() {
           }}
         >
           <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Director" component={DirectorScreen} />
           <Stack.Screen name="DirectorSchedule" component={DirectorScheduleScreen} />
           <Stack.Screen name="PlayerSchedule" component={PlayerScheduleScreen} />
           <Stack.Screen name="ManagerSchedule" component={ManagerScheduleScreen} />

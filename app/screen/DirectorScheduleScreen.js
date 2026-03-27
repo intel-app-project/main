@@ -1,18 +1,60 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
+import { supabase } from "../lib/supabase";
 import { styles } from "./DirectorScheduleScreen.styles";
+import DirectorFooter from "../components/DirectorFooter";
 
-const DirectorScheduleScreen = () => {
-    const navigation = useNavigation();
+
+const DirectorScheduleScreen = ({navigation, route}) => {
     const [schedules, setSchedules] = useState([]);
     const [loading, setLoading] = useState(true);
-    const teamId = 1; // 현재 1팀 감독으로 가정
+    const [teamId, setTeamId] = useState(null);
 
     useEffect(() => {
-        fetchSchedules();
+        fetchTeamInfo();
     }, []);
+
+    const fetchTeamInfo = async () => {
+        try {
+            const { id } = route.params || {};
+            if (!id) {
+                console.error("No ID provided in route params");
+                setLoading(false);
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from("member")
+                .select("Team")
+                .eq("ID", id)
+                .single();
+
+            if (error) {
+                const { data: data2, error: error2 } = await supabase
+                    .from("member")
+                    .select("Team")
+                    .eq("Id", id)
+                    .single();
+                
+                if (error2) throw error2;
+                setTeamId(data2.Team);
+            } else {
+                setTeamId(data.Team);
+            }
+        } catch (e) {
+            console.error("Error fetching team info:", e);
+            Alert.alert("오류", "팀 정보를 불러오지 못했습니다.");
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (teamId !== null) {
+            fetchSchedules();
+        }
+    }, [teamId]);
 
     const fetchSchedules = async () => {
         try {
@@ -35,6 +77,7 @@ const DirectorScheduleScreen = () => {
 
     return (
         <View style={styles.container}>
+            <DirectorFooter activeTab="leagueGameSchedule" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.backBtn}>←</Text>
@@ -80,6 +123,7 @@ const DirectorScheduleScreen = () => {
                     })}
                 </ScrollView>
             )}
+            <DirectorFooter activeTab="leagueGameSchedule" />
         </View>
     );
 };
