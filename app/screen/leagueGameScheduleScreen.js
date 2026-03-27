@@ -5,8 +5,10 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
@@ -120,6 +122,15 @@ const formatScheduleDate = (date) => {
   return `${year}.${month}.${day} (${WEEKDAYS[date.getDay()]})`;
 };
 
+// matchDate(Date 객체)를 LineupScreen에서 사용하는 YYYYMMDD 문자열로 변환
+const toYYYYMMDD = (date) => {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
+};
+
 const normalizeSchedule = (row, teamNameMap) => {
   const matchDate = toDate(
     pick(row, ["date", "match_date", "game_date", "scheduled_at"]),
@@ -141,6 +152,9 @@ const normalizeSchedule = (row, teamNameMap) => {
 };
 
 const LeagueGameScheduleScreen = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [games, setGames] = useState([]);
@@ -307,19 +321,22 @@ const LeagueGameScheduleScreen = () => {
                       index === 0 && styles.scheduleItemHighlight,
                     ]}
                   >
-                    <View style={styles.scheduleIndexBadge}>
-                      <Text style={styles.scheduleIndexText}>
-                        {String(index + 1).padStart(2, "0")}
-                      </Text>
-                    </View>
+                    {/* 번호 + 경기 정보 가로 배치 */}
+                    <View style={styles.scheduleItemRow}>
+                      <View style={styles.scheduleIndexBadge}>
+                        <Text style={styles.scheduleIndexText}>
+                          {String(index + 1).padStart(2, "0")}
+                        </Text>
+                      </View>
 
-                    <View style={styles.scheduleMain}>
-                      <Text style={styles.scheduleMatchText}>
-                        {game.home} vs {game.away}
-                      </Text>
-                      <Text style={styles.scheduleDateText}>
-                        {formatScheduleDate(game.matchDate)}
-                      </Text>
+                      <View style={styles.scheduleMain}>
+                        <Text style={styles.scheduleMatchText}>
+                          {game.home} vs {game.away}
+                        </Text>
+                        <Text style={styles.scheduleDateText}>
+                          {formatScheduleDate(game.matchDate)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 ))}
