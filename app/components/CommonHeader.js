@@ -1,6 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const CommonHeader = ({ title }) => {
   const navigation = useNavigation();
@@ -8,11 +7,6 @@ const CommonHeader = ({ title }) => {
   return (
     <View style={[styles.topBar, { paddingTop: 10 }]}>
       <Text style={styles.topBarTitle}>{title}</Text>
-      {title == "playerDetailScreen" &&
-        <TouchableOpacity style={styles.topBarTitle} onPress={() => navigation.popToTop()}>
-          <Text style={styles.iconText}>로그아웃</Text>
-        </TouchableOpacity>
-      }
     </View>
   );
 };

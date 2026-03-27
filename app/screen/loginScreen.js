@@ -4,8 +4,6 @@ import {
   View,
   TouchableOpacity,
   Alert,
-  Modal,
-  FlatList,
 } from "react-native";
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -15,10 +13,6 @@ import { styles } from "./loginScreen.styles";
 const LoginScreen = ({ navigation }) => {
   const [userId, setUserId] = useState("");
   const [userPw, setUserPw] = useState("");
-  const [selectedId, setSelectedId] = useState(0);
-  const [showPicker, setShowPicker] = useState(false);
-
-  const userIds = Array.from({ length: 84 }, (_, i) => i);
 
   const handleLogin = async () => {
     if (!userId || !userPw) {
@@ -102,75 +96,11 @@ const LoginScreen = ({ navigation }) => {
         >
           <Text style={styles.buttonText}>Confirm</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.pickerButton}
-          onPress={() => setShowPicker(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.pickerButtonText}>Select User ID: {selectedId}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={() => navigation.navigate("PlayerSchedule", { id: selectedId })}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.buttonText}>Quick Login</Text>
-        </TouchableOpacity>
-
-        <Modal
-          visible={showPicker}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowPicker(false)}
-        >
-          <TouchableOpacity 
-            style={styles.modalOverlay} 
-            activeOpacity={1} 
-            onPress={() => setShowPicker(false)}
-          >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Choose User ID</Text>
-              <FlatList
-                data={userIds}
-                keyExtractor={(item) => item.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.idItem,
-                      selectedId === item && styles.selectedIdItem
-                    ]}
-                    onPress={() => {
-                      setSelectedId(item);
-                      setShowPicker(false);
-                    }}
-                  >
-                    <Text style={[
-                      styles.idText,
-                      selectedId === item && styles.selectedIdText
-                    ]}>
-                      User ID: {item}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                showsVerticalScrollIndicator={false}
-              />
-            </View>
-          </TouchableOpacity>
-        </Modal>
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={() => navigation.navigate("ManagerSchedule")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.buttonText}>Manager Login</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
 };
 
 export default LoginScreen;
-
 
 
