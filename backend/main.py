@@ -171,10 +171,12 @@ def get_schedule_by_date(date: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/schedule/{date}/lineup")
-def update_lineup(date: str, lineup: dict): # Using dict to be flexible with '1B' keys
+def update_lineup(date: str, lineup: dict, side: str = "home"): # side 파라미터 추가 (기본값 home)
     try:
-        response = supabase.table("schedule").update({"lineup": lineup}).eq("date", date).execute()
-        return {"message": "라인업이 성공적으로 저장되었습니다.", "data": response.data}
+        # side 값에 따라 업데이트할 컬럼 결정
+        column = "home_lineup" if side.lower() == "home" else "away_lineup"
+        response = supabase.table("schedule").update({column: lineup}).eq("date", date).execute()
+        return {"message": f"{side} 라인업이 성공적으로 저장되었습니다.", "data": response.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

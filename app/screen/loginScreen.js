@@ -47,7 +47,7 @@ const LoginScreen = ({ navigation }) => {
       const position = data.Primary_Position;
 
       if (position === "감독") {
-        navigation.navigate("PlayerSchedule", { id: data.Id });
+        navigation.navigate("leagueGameSchedule", { id: data.Id, isDirector: true });
       } else if (position === "기록원") {
         navigation.navigate("ManagerSchedule", { id: data.Id });
       } else {

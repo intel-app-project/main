@@ -7,7 +7,7 @@ const PlayerFooter = ({ activeTab }) => {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
-  const { id } = route.params || {};
+  const { id, isDirector } = route.params || {};
   const currentUserId = id;
 
   const tabs = [
@@ -21,7 +21,7 @@ const PlayerFooter = ({ activeTab }) => {
       id: "LeagueSchedule",
       label: "팀정보",
       icon: "account-group",
-      screen: "LineupScreen",
+      screen: "TeamInfo",
     },
     {
       id: "leagueGameSchedule",
@@ -38,7 +38,13 @@ const PlayerFooter = ({ activeTab }) => {
   ];
 
   const handlePress = (tab) => {
-    navigation.navigate(tab.screen, { id: currentUserId });
+    // push를 사용하여 매번 새로운 인스턴스를 생성함으로써 params 유실 방지
+    navigation.push(tab.screen, {
+      id: currentUserId,
+      // isDirector가 있으면 다음 화면에도 전달 (감독 식별용)
+      ...(isDirector ? { isDirector: true } : {}),
+      ...(tab.extraParams || {}),
+    });
   };
 
   return (

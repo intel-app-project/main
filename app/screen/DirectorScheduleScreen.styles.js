@@ -24,21 +24,22 @@ export const styles = StyleSheet.create({
     opacity: 0.8,
   },
   card: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#ffffff", // Pure white for elevation contrast
+    backgroundColor: "#ffffff",
     borderRadius: 12,
-    padding: 24,
+    padding: 20,
     marginBottom: 16,
-    // Soft shadow from DESIGN.md
     shadowColor: "#2e3230",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 20,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(4a, 124, 89, 0.05)",
+  },
+  cardTop: {
+    // 쪸대마치 정보 영역
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
   },
   cardLeft: {
     flex: 1,
@@ -88,5 +89,17 @@ export const styles = StyleSheet.create({
   },
   awayTagText: {
     color: "#705c30",
-  }
+  },
+  lineupBtn: {
+    // 라인업 짜기 버튼
+    backgroundColor: "#4a7c59",
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  lineupBtnText: {
+    color: "#ffffff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
 });

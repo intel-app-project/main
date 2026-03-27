@@ -21,13 +21,14 @@ const DirectorFooter = ({ activeTab }) => {
       id: "LeagueSchedule",
       label: "팀정보",
       icon: "account-group",
-      screen: "LineupScreen",
+      screen: "TeamInfo",
     },
     {
       id: "leagueGameSchedule",
       label: "리그일정",
       icon: "format-list-bulleted",
       screen: "leagueGameSchedule",
+      extraParams: { isDirector: true }, // 감독 전용 파라미터
     },
     {
       id: "UserInfo",
@@ -38,7 +39,12 @@ const DirectorFooter = ({ activeTab }) => {
   ];
 
   const handlePress = (tab) => {
-    navigation.navigate(tab.screen, { id: currentUserId });
+    // push: 스택에 항상 새 인스턴스를 쌓아 params가 이전 값에 merge되지 않도록 함
+    // navigate는 이미 스택에 있는 화면의 params를 재사용해 isDirector가 유실될 수 있음
+    navigation.push(tab.screen, {
+      id: currentUserId,
+      ...(tab.extraParams || {}),
+    });
   };
 
   return (

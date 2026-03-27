@@ -154,14 +154,18 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
   scheduleItem: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: 12,
     padding: 14,
     borderRadius: 16,
     backgroundColor: "#fcf8f2",
     borderWidth: 1,
     borderColor: "rgba(112, 92, 48, 0.08)",
+  },
+  scheduleItemRow: {
+    // 번호 + 경기정보 가로 정렬
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   scheduleItemHighlight: {
     borderColor: "rgba(74, 124, 89, 0.22)",
@@ -219,5 +223,17 @@ export const styles = StyleSheet.create({
     color: "#8b3f3f",
     fontSize: 14,
     lineHeight: 22,
+  },
+  // 라인업 짜기 버튼 (isDirector일 때만 표시)
+  lineupBtn: {
+    backgroundColor: "#4a7c59",
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  lineupBtnText: {
+    color: "#ffffff",
+    fontWeight: "800",
+    fontSize: 14,
   },
 });

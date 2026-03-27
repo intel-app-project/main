@@ -11,13 +11,7 @@ export const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 24,
-    gap: 12,
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 24,
+    paddingBottom: 100,
     gap: 12,
   },
   switchUserButton: {

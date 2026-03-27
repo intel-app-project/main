@@ -13,6 +13,7 @@ const DirectorScheduleScreen = ({navigation, route}) => {
     const [schedules, setSchedules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [teamId, setTeamId] = useState(null);
+    const directorId = route.params?.id; // 감독 사용자 ID
 
     useEffect(() => {
         fetchTeamInfo();
@@ -96,26 +97,34 @@ const DirectorScheduleScreen = ({navigation, route}) => {
                     {schedules.map((item) => {
                         const isHome = item.home === teamId;
                         return (
-                            <TouchableOpacity 
-                                key={item.id} 
-                                style={styles.card}
-                                onPress={() => navigation.navigate("Lineup", { targetDate: item.date })}
-                            >
-                                <View style={styles.cardLeft}>
-                                    <View style={styles.dateContainer}>
-                                        <Text style={styles.dateText}>{formatDate(item.date)}</Text>
-                                        <View style={[styles.tag, isHome ? styles.homeTag : styles.awayTag]}>
-                                            <Text style={[styles.tagText, !isHome && styles.awayTagText]}>
-                                                {isHome ? "HOME" : "AWAY"}
-                                            </Text>
+                            <View key={item.id} style={styles.card}>
+                                {/* 경기 정보 영역 */}
+                                <View style={styles.cardTop}>
+                                    <View style={styles.cardLeft}>
+                                        <View style={styles.dateContainer}>
+                                            <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+                                            <View style={[styles.tag, isHome ? styles.homeTag : styles.awayTag]}>
+                                                <Text style={[styles.tagText, !isHome && styles.awayTagText]}>
+                                                    {isHome ? "HOME" : "AWAY"}
+                                                </Text>
+                                            </View>
                                         </View>
+                                        <Text style={styles.matchText}>
+                                            {isHome ? `vs Team ${item.away}` : `at Team ${item.home}`}
+                                        </Text>
                                     </View>
-                                    <Text style={styles.matchText}>
-                                        {isHome ? `vs Team ${item.away}` : `at Team ${item.home}`}
-                                    </Text>
                                 </View>
-                                <Text style={styles.arrow}>〉</Text>
-                            </TouchableOpacity>
+                                {/* 라인업 짜기 버튼 */}
+                                <TouchableOpacity
+                                    style={styles.lineupBtn}
+                                    onPress={() => navigation.navigate("LineupScreen", {
+                                        targetDate: item.date,
+                                        id: directorId,
+                                    })}
+                                >
+                                    <Text style={styles.lineupBtnText}>📋 라인업 짜기</Text>
+                                </TouchableOpacity>
+                            </View>
                         );
                     })}
                 </ScrollView>

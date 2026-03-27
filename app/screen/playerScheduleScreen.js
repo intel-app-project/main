@@ -312,8 +312,11 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
           {isDirector ? (
             <TouchableOpacity
               style={styles.lineupBadge}
-              onPress={() => {}}
-              activeOpacity={1}
+              onPress={() => navigation.navigate("LineupScreen", {
+                targetDate: game.scheduleDate,
+                id,
+              })}
+              activeOpacity={0.8}
             >
               <Text style={styles.lineupBadgeText}>라인업</Text>
             </TouchableOpacity>
