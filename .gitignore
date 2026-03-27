@@ -4,3 +4,6 @@ node_modules
 **/__pycache__/
 *.py[cod]
 *$py.class
+
+# 상수 파일 무시
+app\constants\commonConstants.js
