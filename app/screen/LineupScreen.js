@@ -9,7 +9,6 @@ import DirectorFooter from "../components/DirectorFooter";
 import CommonHeader from "../components/CommonHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-
 const LineupScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -388,7 +387,7 @@ const LineupScreen = () => {
           <Text style={styles.saveBtnText}>라인업 저장하기</Text>
         </TouchableOpacity>
       </ScrollView>
-      <DirectorFooter activeTab="leagueGameSchedule" />
+      <DirectorFooter activeTab="LeagueSchedule" />
     </SafeAreaView>
   );
 };

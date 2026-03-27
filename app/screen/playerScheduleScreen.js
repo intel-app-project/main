@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
   SCHEDULE_API_ENDPOINT,
@@ -496,12 +497,12 @@ const PlayerScheduleScreen = ({ navigation, route }) => {
                 <Text style={styles.calendarArrow}>›</Text>
               </TouchableOpacity>
             </View>
-            {/* <TouchableOpacity
+            <TouchableOpacity
               style={styles.todayButton}
               onPress={handleResetCalendarMonth}
             >
-              <Text style={styles.todayButtonText}> 오늘 </Text>
-            </TouchableOpacity> */}
+              <MaterialCommunityIcons name="restore" size={24} color="#4a7c59" />
+            </TouchableOpacity>
           </View>
           <View style={styles.weekHeader}>
             {WEEKDAY_LABELS.map((day) => (

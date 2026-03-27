@@ -21,7 +21,7 @@ const PlayerFooter = ({ activeTab }) => {
       id: "LeagueSchedule",
       label: "팀정보",
       icon: "account-group",
-      screen: "LeagueSchedule",
+      screen: "LineupScreen",
     },
     {
       id: "leagueGameSchedule",
