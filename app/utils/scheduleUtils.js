@@ -15,18 +15,20 @@ export const pick = (obj, keys) => {
 };
 
 export const findMemberByUserId = (members, userId) =>
-  members.find(
-    (member) => {
-      const idVal = pick(member, ["Id", "id"]);
-      const userIdVal = pick(member, ["User_ID", "user_id"]);
-      const targetIdStr = String(userId ?? "").trim();
-      
-      return (
-        (idVal !== null && idVal !== undefined && String(idVal).trim() === targetIdStr) ||
-        (userIdVal !== null && userIdVal !== undefined && String(userIdVal).trim() === targetIdStr)
-      );
-    }
-  );
+  members.find((member) => {
+    const idVal = pick(member, ["Id", "id"]);
+    const userIdVal = pick(member, ["User_ID", "user_id"]);
+    const targetIdStr = String(userId ?? "").trim();
+
+    return (
+      (idVal !== null &&
+        idVal !== undefined &&
+        String(idVal).trim() === targetIdStr) ||
+      (userIdVal !== null &&
+        userIdVal !== undefined &&
+        String(userIdVal).trim() === targetIdStr)
+    );
+  });
 
 export const parseJsonField = (value) => {
   if (typeof value !== "string") {
@@ -124,7 +126,8 @@ export const toDate = (value) => {
 
 export const startOfDay = (date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate());
-export const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
+export const startOfMonth = (date) =>
+  new Date(date.getFullYear(), date.getMonth(), 1);
 
 export const toDateKey = (date) =>
   [
@@ -133,7 +136,8 @@ export const toDateKey = (date) =>
     String(date.getDate()).padStart(2, "0"),
   ].join("-");
 
-export const formatDateText = (date) => `${date.getMonth() + 1}월 ${date.getDate()}일`;
+export const formatDateText = (date) =>
+  `${date.getMonth() + 1}월 ${date.getDate()}일`;
 export const formatCalendarMonth = (date) =>
   `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
 
@@ -245,7 +249,8 @@ export const mergeAttendanceStatus = (currentStatus, nextStatus) => {
     : currentStatus;
 };
 
-export const isActiveSchedule = (row) => !pick(row, ["deleted_at", "deletedAt"]);
+export const isActiveSchedule = (row) =>
+  !pick(row, ["deleted_at", "deletedAt"]);
 
 export const matchScheduleForUser = (row, member) => {
   const homeTeamId = pick(row, ["home", "home_team"]);
@@ -280,7 +285,12 @@ export const matchScheduleForUser = (row, member) => {
   };
 };
 
-export const normalizeSchedule = (row, scheduleContext, member, teamNameMap) => {
+export const normalizeSchedule = (
+  row,
+  scheduleContext,
+  member,
+  teamNameMap,
+) => {
   const dateValue = pick(row, [
     "date",
     "start_time",
@@ -389,9 +399,12 @@ export const resolveMember = async (memberRes, normalizedUserId) => {
 };
 
 export const deleteSchedule = async (id) => {
-  const response = await fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${id}`, {
-    method: "DELETE",
-  });
+  const response = await fetch(
+    `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${id}`,
+    {
+      method: "DELETE",
+    },
+  );
   if (!response.ok) {
     throw new Error(`HTTP 오류 ${response.status}`);
   }
@@ -402,7 +415,7 @@ export const saveSchedule = async (data, editingId) => {
   const url = editingId
     ? `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${editingId}`
     : `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`;
-  
+
   const method = editingId ? "PUT" : "POST";
 
   const response = await fetch(url, {
