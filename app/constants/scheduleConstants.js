@@ -9,7 +9,19 @@ export const ATTENDANCE_OPTIONS = [
   { key: "absent", label: "X", text: "불참", color: "#c84747" },
 ];
 
-export const POSITIONS = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH", "BENCH"];
+export const POSITIONS = [
+  "P",
+  "C",
+  "1B",
+  "2B",
+  "3B",
+  "SS",
+  "LF",
+  "CF",
+  "RF",
+  "DH",
+  "BENCH",
+];
 
 export const BATTING_ORDERS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -27,5 +39,5 @@ export const INITIAL_LINEUP = {
     DH: null,
     BENCH: [],
   },
-  batting: Array(9).fill(null)
+  batting: Array(9).fill(null),
 };

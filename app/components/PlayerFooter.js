@@ -8,44 +8,14 @@ const PlayerFooter = ({ activeTab }) => {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const { id } = route.params || {};
-  const currentUserId = id;
 
   const tabs = [
-    {
-      id: "MyGame",
-      label: "내경기",
-      icon: "baseball",
-      screen: "myGame",
-    },
-    {
-      id: "TeamSchedule",
-      label: "일정관리",
-      icon: "calendar-month",
-      screen: "PlayerSchedule",
-    },
-    {
-      id: "LeagueSchedule",
-      label: "라인업",
-      icon: "account-group",
-      screen: "LineupScreen",
-    },
-    {
-      id: "leagueGameSchedule",
-      label: "리그일정",
-      icon: "format-list-bulleted",
-      screen: "leagueGameSchedule",
-    },
-    {
-      id: "UserInfo",
-      label: "내정보",
-      icon: "account",
-      screen: "PlayerDetail",
-    },
+    { id: "MyGame", label: "내경기", icon: "baseball", screen: "myGame" },
+    { id: "TeamSchedule", label: "일정관리", icon: "calendar-month", screen: "PlayerSchedule" },
+    { id: "LeagueSchedule", label: "라인업", icon: "account-group", screen: "LineupScreen" },
+    { id: "leagueGameSchedule", label: "리그일정", icon: "format-list-bulleted", screen: "leagueGameSchedule" },
+    { id: "UserInfo", label: "내정보", icon: "account", screen: "PlayerDetail" },
   ];
-
-  const handlePress = (tab) => {
-    navigation.navigate(tab.screen, { id: currentUserId });
-  };
 
   return (
     <View
@@ -54,27 +24,23 @@ const PlayerFooter = ({ activeTab }) => {
         { height: 60 + insets.bottom, paddingBottom: insets.bottom || 10 },
       ]}
     >
-      {tabs.map((tab) => {
-        const isActive = activeTab === tab.id;
-
-        return (
-          <TouchableOpacity
-            key={tab.id}
-            style={styles.tabButton}
-            onPress={() => handlePress(tab)}
-            activeOpacity={0.7}
-          >
-            <MaterialCommunityIcons
-              name={tab.icon}
-              size={24}
-              color={isActive ? "#4a7c59" : "#a0a0a0"}
-            />
-            <Text style={[styles.tabLabel, isActive && styles.activeTabLabel]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+      {tabs.map((tab) => (
+        <TouchableOpacity
+          key={tab.id}
+          style={styles.tabButton}
+          onPress={() => navigation.navigate(tab.screen, { id })}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name={tab.icon}
+            size={24}
+            color={activeTab === tab.id ? "#4a7c59" : "#a0a0a0"}
+          />
+          <Text style={[styles.tabLabel, activeTab === tab.id && styles.activeTabLabel]}>
+            {tab.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 };

@@ -7,7 +7,6 @@ import {
 } from "react-native";
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-
 import { styles } from "./loginScreen.styles";
 
 const LoginScreen = ({ navigation }) => {
@@ -34,7 +33,7 @@ const LoginScreen = ({ navigation }) => {
       }
 
       if (!data) {
-        Alert.alert("오류", "ID가 존재하지 않습니다.");
+        Alert.alert("오류", "존재하지 않는 아이디입니다.");
         return;
       }
 
@@ -43,16 +42,12 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
-      // 로그인 성공 - 권한별 분기
-      const position = data.Primary_Position;
-
-      if (position === "감독") {
-        navigation.navigate("myGame", { id: data.Id });
-      } else if (position === "기록원") {
+      if (String(data.Primary_Position || "").trim() === "기록원") {
         navigation.navigate("ManagerSchedule", { id: data.Id });
-      } else {
-        navigation.navigate("myGame", { id: data.Id });
+        return;
       }
+
+      navigation.navigate("myGame", { id: data.Id });
     } catch (err) {
       Alert.alert("오류", "로그인 처리 중 문제가 발생했습니다.");
       console.error(err);
@@ -64,12 +59,12 @@ const LoginScreen = ({ navigation }) => {
       <View style={styles.box}>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>Enter your details to continue</Text>
-        
+
         <View style={styles.field}>
           <Text style={styles.label}>ID</Text>
-          <TextInput 
-            style={styles.textInput} 
-            placeholder="Enter ID" 
+          <TextInput
+            style={styles.textInput}
+            placeholder="Enter ID"
             placeholderTextColor="#a09b8e"
             value={userId}
             onChangeText={setUserId}
@@ -89,7 +84,7 @@ const LoginScreen = ({ navigation }) => {
           />
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.button}
           onPress={handleLogin}
           activeOpacity={0.8}
@@ -102,5 +97,3 @@ const LoginScreen = ({ navigation }) => {
 };
 
 export default LoginScreen;
-
-

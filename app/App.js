@@ -11,7 +11,7 @@ import PlayerDetailScreen from "./screen/playerDetailScreen";
 import LeagueGameScheduleScreen from "./screen/leagueGameScheduleScreen";
 import LineupScreen from "./screen/LineupScreen";
 import DirectorScheduleScreen from "./screen/DirectorScheduleScreen";
-import MyGameScreen from "./screen/myGame";
+import MyGameScreen from "./screen/myGameScreen";
 
 const Stack = createStackNavigator();
 
