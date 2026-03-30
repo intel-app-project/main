@@ -7,6 +7,7 @@ import {
   Alert,
   Text,
 } from "react-native";
+import { SvgUri } from "react-native-svg";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
   POSITIONS,
@@ -69,7 +70,6 @@ const LineupScreen = ({route}) => {
         const teamId = currentUser?.Team;
         const homeSide = currentSched.home === teamId;
         
-        setMyTeamId(teamId);
         setIsHome(homeSide);
 
         // 참석자 리스트 가공
@@ -78,7 +78,12 @@ const LineupScreen = ({route}) => {
           ? memberStatus.map(item => Number(item?.Id || item))
           : Object.keys(memberStatus).filter(mid => Number(memberStatus[mid]) === 1).map(mid => Number(mid));
 
-        const attendingMembers = memData.filter((m) => m.Id && attendingIds.includes(m.Id));
+        const attendingMembers = memData.filter(
+          (m) =>
+            m.Id &&
+            attendingIds.includes(m.Id) &&
+            m.Primary_Position !== "감독",
+        );
         setAttendees(attendingMembers);
 
         // 해당 팀의 라인업 로드 (home_lineup 또는 away_lineup)
@@ -223,14 +228,6 @@ const LineupScreen = ({route}) => {
     Alert.alert("완료", "배정되지 않은 인원을 모두 후보로 등록했습니다.");
   };
 
-  const isMemberAssigned = (m) => {
-    if (!m.Id) return false;
-    if (activeTab === "defense") {
-      return Object.keys(lineup.defense).some(k => k !== "BENCH" && lineup.defense[k] === m.Id) || (lineup.defense.BENCH || []).includes(m.Id);
-    }
-    return lineup.batting.includes(m.Id);
-  };
-
   const getAssignedKey = (m) => {
     if (!m.Id) return null;
     if (activeTab === "defense") {
@@ -252,7 +249,6 @@ const LineupScreen = ({route}) => {
   return (
     <SafeAreaView style={styles.container}>
       <CommonHeader title="LineupScreen" />
-
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === "defense" && styles.activeTab]}
@@ -289,36 +285,8 @@ const LineupScreen = ({route}) => {
         {/* 수비 위치 탭 */}
         {activeTab === "defense" ? (
           <View style={styles.fieldSection}>
+            <Text style={styles.sectionTitle}>Defensive Alignment</Text>
             <View style={styles.fieldCard}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  width: "100%",
-                }}
-              >
-                <Text style={styles.sectionTitle}>Defensive Alignment</Text>
-                <TouchableOpacity
-                  onPress={handleAutoBench}
-                  style={{
-                    backgroundColor: "rgba(74, 124, 89, 0.1)",
-                    paddingHorizontal: 10,
-                    paddingVertical: 5,
-                    borderRadius: 5,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#4a7c59",
-                      fontSize: 10,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    나머지 인원 일괄 후보 등록
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
               {/* 야구장 시각화 레이어 시작 */}
               <View style={styles.fieldContainer}>
                 {/* 부채꼴 외야 잔디 배경 */}
@@ -353,79 +321,113 @@ const LineupScreen = ({route}) => {
                 ))}
               </View>
             </View>
+            <TouchableOpacity onPress={handleAutoBench} style={styles.autoBenchBtn}>
+              <Text style={styles.autoBenchBtnText}>나머지 인원 일괄 후보 등록</Text>
+            </TouchableOpacity>
           </View>
         ) : (
-          /* 타순 설정 탭 */
+          /* 타순 설정 탭 - 일본식 메뉴판 스타일 */
           <View style={styles.battingSection}>
-            <View style={styles.battingList}>
-              <Text style={styles.sectionTitle}>Batting Order (1-9)</Text>
-              {BATTING_ORDERS.map((order, idx) => (
-                <TouchableOpacity
-                  key={order}
-                  style={[
-                    styles.battingRow,
-                    selectedBattingIdx === idx && styles.battingRowActive,
-                  ]}
-                  onPress={() => setSelectedBattingIdx(idx)}
-                >
-                  <Text style={styles.battingOrder}>{order}</Text>
-                  {lineup.batting[idx] ? (
-                    <Text style={styles.battingName}>
-                      {getNameById(lineup.batting[idx])}
-                    </Text>
-                  ) : (
-                    <Text style={styles.battingEmpty}>선수를 선택해주세요</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
+            <Text style={styles.sectionTitle}>Batting Order Board</Text>
+            <View style={styles.battingBoard}>
+              {BATTING_ORDERS.map((order, idx) => {
+                const memberId = lineup.batting[idx];
+                const name = getNameById(memberId);
+                const isSelected = selectedBattingIdx === idx;
+                
+                return (
+                  <TouchableOpacity
+                    key={order}
+                    style={[
+                      styles.battingColumn,
+                      isSelected && styles.battingColumnActive,
+                    ]}
+                    onPress={() => setSelectedBattingIdx(idx)}
+                  >
+                    <Text style={styles.battingOrderNum}>{order}</Text>
+                    {memberId ? (
+                      <Text style={styles.battingVerticalName}>
+                        {name.split("").join("\n")}
+                      </Text>
+                    ) : (
+                      <Text style={styles.battingVerticalEmpty}>
+                        {"빈\n슬\n롯"}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         )}
 
         <View style={styles.rosterSection}>
-          <Text style={styles.sectionTitle}>참석자 명단 (Status=1)</Text>
-          {attendees.map((m) => {
-            const assignedPos = getAssignedKey(m);
-            const hasDH = !!(lineup.defense.DH && String(lineup.defense.DH).trim());
-            const isP = lineup.defense.P === m.Id;
-            const isEligible = Object.keys(lineup.defense).some(k => k !== "BENCH" && lineup.defense[k] === m.Id) && !(hasDH && isP);
+          <Text style={styles.sectionTitle}>참석 명단</Text>
+          <View style={styles.rosterCard}>
+            {attendees.map((m, idx) => {
+              const assignedPos = getAssignedKey(m);
+              const hasDH = !!(lineup.defense.DH && String(lineup.defense.DH).trim());
+              const isP = lineup.defense.P === m.Id;
+              const isEligible = Object.keys(lineup.defense).some(k => k !== "BENCH" && lineup.defense[k] === m.Id) && !(hasDH && isP);
+              const isLast = idx === attendees.length - 1;
 
-            return (
-              <View key={m.Id} style={styles.memberCard}>
-                <Text style={styles.memberName}>
-                  {m.Name}
-                  {activeTab === "defense" && <Text style={{ color: "rgba(46, 50, 48, 0.5)", fontSize: 12 }}> ({m.Primary_Position || "미정"})</Text>}
-                  <Text style={{ color: "#705c30", fontSize: 13 }}> [{assignedPos || "미배정"}]</Text>
-                </Text>
-                <View style={styles.posButtons}>
-                  {activeTab === "defense" ? (
-                    POSITIONS.map((pos) => {
-                      const isActive = pos === "BENCH" ? (lineup.defense.BENCH || []).includes(m.Id) : lineup.defense[pos] === m.Id;
-                      return (
-                        <TouchableOpacity key={pos} onPress={() => assignMember(pos, m)} style={[styles.posBtn, isActive && styles.posBtnActive]}>
-                          <Text style={[styles.posBtnText, isActive && styles.posBtnTextActive]}>{pos}</Text>
-                        </TouchableOpacity>
-                      );
-                    })
-                  ) : (
-                    <TouchableOpacity
-                      disabled={!isEligible}
-                      onPress={() => assignMember(null, m)}
-                      style={[
-                        styles.posBtn,
-                        lineup.batting.includes(m.Id) && styles.posBtnActive, 
-                        !isEligible && { backgroundColor: "rgba(46, 50, 48, 0.05)", opacity: 0.5 }
-                      ]}
-                    >
-                      <Text style={[styles.posBtnText, lineup.batting.includes(m.Id) && styles.posBtnTextActive, !isEligible && { color: "rgba(46, 50, 48, 0.3)" }]}>
-                        {isEligible ? "배정" : (hasDH && isP ? "DH사용됨" : "수비필요")}
+              return (
+                <View key={m.Id} style={[styles.memberRow, isLast && { borderBottomWidth: 0 }]}>
+                  <View style={styles.memberInfoWrap}>
+                    <View style={styles.memberAvatarContainer}>
+                      <SvgUri
+                        uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${m.Name}`}
+                        width="100%"
+                        height="100%"
+                      />
+                    </View>
+                    <View style={styles.memberTextWrap}>
+                      <Text style={styles.memberName}>
+                        {m.Name}
+                        {activeTab === "defense" && (
+                          <Text
+                            style={{
+                              color: "rgba(46, 50, 48, 0.5)",
+                              fontSize: 12,
+                            }}
+                          >
+                            {" "}
+                            ({m.Primary_Position || "미정"})
+                          </Text>
+                        )}
                       </Text>
-                    </TouchableOpacity>
-                  )}
+                    </View>
+                  </View>
+                  <View style={styles.posButtons}>
+                    {activeTab === "defense" ? (
+                      POSITIONS.map((pos) => {
+                        const isActive = pos === "BENCH" ? (lineup.defense.BENCH || []).includes(m.Id) : lineup.defense[pos] === m.Id;
+                        return (
+                          <TouchableOpacity key={pos} onPress={() => assignMember(pos, m)} style={[styles.posBtn, isActive && styles.posBtnActive]}>
+                            <Text style={[styles.posBtnText, isActive && styles.posBtnTextActive]}>{pos}</Text>
+                          </TouchableOpacity>
+                        );
+                      })
+                    ) : (
+                      <TouchableOpacity
+                        disabled={!isEligible}
+                        onPress={() => assignMember(null, m)}
+                        style={[
+                          styles.posBtn,
+                          (!lineup.batting.includes(m.Id) && isEligible) && styles.posBtnActive, 
+                          !isEligible && { backgroundColor: "rgba(46, 50, 48, 0.05)", opacity: 0.5 }
+                        ]}
+                      >
+                        <Text style={[styles.posBtnText, (!lineup.batting.includes(m.Id) && isEligible) && styles.posBtnTextActive, !isEligible && { color: "rgba(46, 50, 48, 0.3)" }]}>
+                          {lineup.batting.includes(m.Id) ? "배정 완료" : (isEligible ? "배정 필요" : (hasDH && isP ? "DH사용됨" : "수비필요"))}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
 
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
@@ -444,15 +446,44 @@ const PositionSlot = ({ pos, name, highlight, stadium }) => (
       stadium && styles.slotStadium,
     ]}
   >
-    <Text style={[styles.slotPos, stadium && styles.slotPosStadium]}>
-      {pos}
-    </Text>
-    <Text
-      style={[styles.slotName, stadium && styles.slotNameStadium]}
-      numberOfLines={1}
-    >
-      {name || "---"}
-    </Text>
+    {stadium && name && name !== "---" ? (
+      <>
+        <View style={styles.slotAvatarContainer}>
+          <SvgUri
+            uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${name}`}
+            width="100%"
+            height="100%"
+          />
+        </View>
+        <View style={styles.slotBottomRow}>
+          <Text style={[styles.slotName, styles.slotNameStadium]} numberOfLines={1}>
+            {name}
+          </Text>
+          <Text style={[styles.slotPos, styles.slotPosStadium]}>{pos}</Text>
+        </View>
+      </>
+    ) : (
+      <>
+        <Text style={[styles.slotPos, stadium && styles.slotPosStadium]}>
+          {pos}
+        </Text>
+        {name && name !== "---" && (
+          <View style={styles.slotAvatarContainer}>
+            <SvgUri
+              uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${name}`}
+              width="100%"
+              height="100%"
+            />
+          </View>
+        )}
+        <Text
+          style={[styles.slotName, stadium && styles.slotNameStadium]}
+          numberOfLines={1}
+        >
+          {name || "---"}
+        </Text>
+      </>
+    )}
   </View>
 );
 
