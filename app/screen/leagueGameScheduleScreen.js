@@ -15,7 +15,6 @@ import {
   TEAM_API_ENDPOINT,
 } from "../constants/scheduleConstants";
 import { styles } from "./leagueGameScheduleScreen.styles";
-import CommonFooter from "../components/CommonFooter";
 import CommonHeader from "../components/CommonHeader";
 
 const INITIAL_VISIBLE_COUNT = 8;
@@ -357,7 +356,6 @@ const LeagueGameScheduleScreen = () => {
           )}
         </View>
       </ScrollView>
-      <CommonFooter activeTab="LeagueGameSchedule" />
     </SafeAreaView>
   );
 };

@@ -16,7 +16,6 @@ import {
 } from "../constants/scheduleConstants";
 import { parseJsonField } from "../utils/scheduleUtils";
 import { styles } from "./lineupScreen.styles";
-import CommonFooter from "../components/CommonFooter";
 import CommonHeader from "../components/CommonHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -673,7 +672,6 @@ const LineupScreen = () => {
           <Text style={styles.saveBtnText}>라인업 저장하기</Text>
         </TouchableOpacity>
       </ScrollView>
-      <CommonFooter activeTab="Lineup" />
     </SafeAreaView>
   );
 };

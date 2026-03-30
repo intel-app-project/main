@@ -3,7 +3,6 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } fr
 import { API_BASE_URL } from "../constants/commonConstants";
 import { supabase } from "../lib/supabase";
 import { styles } from "./directorScheduleScreen.styles";
-import CommonFooter from "../components/CommonFooter";
 import CommonHeader from "../components/CommonHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -115,7 +114,7 @@ const DirectorScheduleScreen = ({navigation, route}) => {
                                 {/* 라인업 짜기 버튼 */}
                                 <TouchableOpacity
                                     style={styles.lineupBtn}
-                                    onPress={() => navigation.navigate("LineupScreen", {
+                                    onPress={() => navigation.navigate("Lineup", {
                                         targetDate: item.date,
                                         id: directorId,
                                     })}
@@ -127,7 +126,6 @@ const DirectorScheduleScreen = ({navigation, route}) => {
                     })}
                 </ScrollView>
             )}
-            <CommonFooter activeTab="DirectorSchedule" />
         </SafeAreaView>
     );
 };

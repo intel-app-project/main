@@ -54,11 +54,23 @@ const LoginScreen = ({ navigation }) => {
       const position = data.Primary_Position;
 
       if (position === "감독") {
-        navigation.navigate("myGame", { id: data.Id, activeTab: "myGame" });
+        navigation.navigate("MainTab", { 
+          id: data.Id,
+          screen: "MyGame", 
+          params: { id: data.Id } 
+        });
       } else if (position === "기록원") {
-        navigation.navigate("ManagerSchedule", { id: data.Id, activeTab: "ManagerSchedule" });
+        navigation.navigate("MainTab", { 
+          id: data.Id,
+          screen: "MyGame", 
+          params: { screen: "ManagerSchedule", params: { id: data.Id } } 
+        });
       } else {
-        navigation.navigate("myGame", { id: data.Id, activeTab: "myGame" });
+        navigation.navigate("MainTab", { 
+          id: data.Id,
+          screen: "MyGame", 
+          params: { id: data.Id } 
+        });
       }
     } catch (err) {
       Alert.alert("오류", "로그인 처리 중 문제가 발생했습니다.");
@@ -113,7 +125,7 @@ const LoginScreen = ({ navigation }) => {
 
         <TouchableOpacity 
           style={styles.button}
-          onPress={() => navigation.navigate("MyGame", { id: selectedId })}
+          onPress={() => navigation.navigate("MainTab", { id: selectedId, screen: "MyGame", params: { id: selectedId } })}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Quick Login</Text>
@@ -161,7 +173,11 @@ const LoginScreen = ({ navigation }) => {
         </Modal>
         <TouchableOpacity 
           style={styles.button}
-          onPress={() => navigation.navigate("ManagerSchedule")}
+          onPress={() => navigation.navigate("MainTab", { 
+            id: 84, // 매니저 로그인의 경우 기본 ID 설정 (필요시 수정)
+            screen: "MyGame", 
+            params: { screen: "ManagerSchedule" } 
+          })}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Manager Login</Text>

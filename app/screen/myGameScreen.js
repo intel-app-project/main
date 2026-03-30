@@ -15,7 +15,6 @@ import {
 } from "../constants/scheduleConstants";
 import { styles } from "./myGameScreen.styles";
 import CommonHeader from "../components/CommonHeader";
-import CommonFooter from "../components/CommonFooter";
 
 const PositionSlot = ({ pos, name, highlight }) => (
   <View style={[styles.slot, highlight ? styles.slotHighlight : null]}>
@@ -278,7 +277,6 @@ const MyGameScreen = ({ navigation, route }) => {
         </ScrollView>
       )}
 
-      <CommonFooter activeTab="MyGame" />
     </SafeAreaView>
   );
 };

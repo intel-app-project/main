@@ -19,7 +19,6 @@ import {
 } from "../constants/scheduleConstants";
 import { styles } from "./playerScheduleScreen.styles";
 import CommonHeader from "../components/CommonHeader";
-import CommonFooter from "../components/CommonFooter";
 
 const PlayerScheduleScreen = ({ route }) => {
   const { id } = route.params || {};
@@ -624,7 +623,6 @@ const PlayerScheduleScreen = ({ route }) => {
           </View>
         </ScrollView>
       </View>
-      <CommonFooter activeTab="PlayerSchedule" />
     </SafeAreaView>
   );
 };

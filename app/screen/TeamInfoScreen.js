@@ -11,9 +11,8 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import { INITIAL_LINEUP } from "../constants/scheduleConstants";
 import { parseJsonField } from "../utils/scheduleUtils";
-import { styles } from "./TeamInfoScreen.styles";
+import { styles } from "./teamInfoScreen.styles";
 import CommonHeader from "../components/CommonHeader";
-import CommonFooter from "../components/CommonFooter";
 
 
 const TeamInfoScreen = () => {
@@ -216,7 +215,6 @@ const TeamInfoScreen = () => {
           </View>
         </View>
       </ScrollView>
-      <CommonFooter activeTab="TeamInfo" />
     </SafeAreaView>
   );
 };

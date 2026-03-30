@@ -1,21 +1,21 @@
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
-const CommonFooter = ({ activeTab }) => {
-  const navigation = useNavigation();
-  const route = useRoute();
+const CommonFooter = ({ state, navigation, Id, userPosition }) => {
+  console.log("[CommonFooter] Received Id:", Id);
   const insets = useSafeAreaInsets();
-  const { id } = route.params || {};
-  const [position, setPosition] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [position, setPosition] = useState(userPosition);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+      setPosition(userPosition);
+      setLoading(false);
+
     const fetchMemberPosition = async () => {
-      if (!id) {
+      if (!Id) {
         setLoading(false);
         return;
       }
@@ -24,30 +24,19 @@ const CommonFooter = ({ activeTab }) => {
         const { data, error } = await supabase
           .from("member")
           .select("Primary_Position")
-          .eq("Id", id) 
+          .eq("Id", Id) 
           .single();
 
-        if (error) {
-          console.error("Error fetching member position:", error);
-        } else if (data) {
-          setPosition(data.Primary_Position);
-        }
+        setPosition(data.Primary_Position);
       } catch (err) {
-        console.error("Unexpected error fetching position:", err);
+        console.error("Error fetching position in Footer:", err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchMemberPosition();
-  }, [id]);
-
-  const handlePress = (tab) => {
-    navigation.push(tab.screen, {
-      id: id,
-      ...(tab.extraParams || {}),
-    });
-  };
+  }, [Id]);
 
   if (loading) {
     return (
@@ -73,22 +62,36 @@ const CommonFooter = ({ activeTab }) => {
       ];
 
   return (
-    <View style={[styles.container, { height: 60 + insets.bottom, paddingBottom: insets.bottom || 10 }]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom || 10 }]}>
       {tabs.map((tab) => {
-        const isActive = activeTab === tab.id;
+        // Tab.Navigator 모드일 경우 state 사용, 아니면 prop의 activeTab 사용 (fallback)
+        const isFocused = state 
+          ? state.routes[state.index].name === tab.screen
+          : false;
+
+        const handlePress = () => {
+          if (state && navigation) {
+            // Tab.Navigator 모드
+            navigation.navigate(tab.screen, { id: Id });
+          } else {
+            // 구스택 모드 (비추천, 마이그레이션용)
+            navigation.navigate(tab.screen, { id: Id });
+          }
+        };
+
         return (
           <TouchableOpacity
             key={tab.id}
             style={styles.tabButton}
-            onPress={() => handlePress(tab)}
+            onPress={handlePress}
             activeOpacity={0.7}
           >
             <MaterialCommunityIcons
               name={tab.icon}
               size={24}
-              color={isActive ? "#4a7c59" : "#a0a0a0"}
+              color={isFocused ? "#4a7c59" : "#a0a0a0"}
             />
-            <Text style={[styles.tabLabel, isActive && styles.activeTabLabel]}>
+            <Text style={[styles.tabLabel, isFocused && styles.activeTabLabel]}>
               {tab.label}
             </Text>
           </TouchableOpacity>

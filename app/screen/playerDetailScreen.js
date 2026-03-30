@@ -12,7 +12,6 @@ import Svg, { Polygon, Text as SvgText } from "react-native-svg";
 import { styles } from "./playerDetailScreen.styles";
 import { supabase } from "../lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import CommonFooter from "../components/CommonFooter";
 import CommonHeader from "../components/CommonHeader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -20,6 +19,7 @@ const CARD_WIDTH = SCREEN_WIDTH - 24; // Based on 12px horizontal padding
 
 const PlayerDetailScreen = ({navigation, route}) => {
   const { id } = route.params;
+      console.log(id);
 
 
   const [loading, setLoading] = useState(true);
@@ -43,8 +43,10 @@ const PlayerDetailScreen = ({navigation, route}) => {
   });
 
   useEffect(() => {
-    fetchPlayerData();
-  }, []);
+    if (id !== undefined) {
+      fetchPlayerData();
+    }
+  }, [id]);
 
   const fetchPlayerData = async () => {
     try {
@@ -534,7 +536,6 @@ const PlayerDetailScreen = ({navigation, route}) => {
         )}
 
       </ScrollView>
-      <CommonFooter activeTab="PlayerDetail" />
     </SafeAreaView>
   );
 };
