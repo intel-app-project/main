@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -22,7 +23,6 @@ const LOAD_MORE_COUNT = 3;
 const STADIUM_NAME = "수원 KT 위즈파크";
 const STADIUM_IMAGE_URI =
   "https://i.namu.wiki/i/s5el6DSDQjJetZbb2WxKe-H8PtDQ6dfeZuMSKUtyro-XpSYN-lY2F-baCLWr_IqPi6nTTNQpa5zjc18gyN5xX01x2hKrAn65EKGflZmbyF1C5-hjFB2Te6mPOGzUeimD3AwO-qVSNz_C8nQSgaaozA.webp";
-const MESSAGE_NEXT_MATCH = "다음 경기";
 const MESSAGE_NO_NEAREST = "표시할 예정 경기가 없습니다.";
 const MESSAGE_UPCOMING = "남은 경기 일정";
 const MESSAGE_LOAD_ERROR = "리그 경기 일정을 불러오지 못했습니다.";
@@ -140,11 +140,15 @@ const normalizeSchedule = (row, teamNameMap) => {
 
   const home = pick(row, ["home", "home_team"]);
   const away = pick(row, ["away", "away_team"]);
+  const homeScore = pick(row, ["home_score", "score_home", "HomeScore", "HOME_SCORE"]);
+  const awayScore = pick(row, ["away_score", "score_away", "AwayScore", "AWAY_SCORE"]);
 
   return {
     id: String(pick(row, ["id", "Id"]) || `${home}-${away}-${matchDate}`),
     home: getTeamName(teamNameMap, home, "HOME"),
     away: getTeamName(teamNameMap, away, "AWAY"),
+    homeScore: homeScore !== null ? String(homeScore) : null,
+    awayScore: awayScore !== null ? String(awayScore) : null,
     matchDate,
   };
 };
@@ -156,6 +160,7 @@ const LeagueGameScheduleScreen = () => {
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [games, setGames] = useState([]);
+  const [activeTab, setActiveTab] = useState("FUTURE"); // 'PAST' or 'FUTURE'
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
 
   useEffect(() => {
@@ -188,14 +193,11 @@ const LeagueGameScheduleScreen = () => {
         ]);
 
         const teamNameMap = buildTeamNameMap(teamRows);
-        const today = startOfToday();
         const normalizedGames = (
           Array.isArray(scheduleRows) ? scheduleRows : []
         )
           .map((row) => normalizeSchedule(row, teamNameMap))
-          .filter(Boolean)
-          .filter((game) => game.matchDate >= today)
-          .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime());
+          .filter(Boolean);
 
         if (isMounted) {
           setGames(normalizedGames);
@@ -220,16 +222,39 @@ const LeagueGameScheduleScreen = () => {
     };
   }, []);
 
-  const nearestGame = games[0] || null;
+  const today = startOfToday();
+
+  // 탭에 따라 필터링 및 정합 정렬된 경기 리스트
+  const filteredGames = useMemo(() => {
+    if (activeTab === "FUTURE") {
+      return games
+        .filter((g) => g.matchDate >= today)
+        .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime());
+    } else {
+      return games
+        .filter((g) => g.matchDate < today)
+        .sort((a, b) => b.matchDate.getTime() - a.matchDate.getTime());
+    }
+  }, [games, activeTab, today]);
+
+  const nearestGame = useMemo(() => {
+    return (
+      games
+        .filter((g) => g.matchDate >= today)
+        .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime())[0] ||
+      null
+    );
+  }, [games, today]);
+
   const visibleGames = useMemo(
-    () => games.slice(0, visibleCount),
-    [games, visibleCount],
+    () => filteredGames.slice(0, visibleCount),
+    [filteredGames, visibleCount],
   );
-  const hasMoreGames = visibleCount < games.length;
+  const hasMoreGames = visibleCount < filteredGames.length;
 
   const handleLoadMore = () => {
     setVisibleCount((current) =>
-      Math.min(current + LOAD_MORE_COUNT, games.length),
+      Math.min(current + LOAD_MORE_COUNT, filteredGames.length),
     );
   };
 
@@ -258,8 +283,8 @@ const LeagueGameScheduleScreen = () => {
         </View>
 
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionEyebrow}>Recent Match</Text>
-          <Text style={styles.sectionTitle}>{MESSAGE_NEXT_MATCH}</Text>
+          <Text style={styles.sectionEyebrow}>NEXT MATCH</Text>
+          <Text style={styles.sectionTitle}>이번 경기</Text>
 
           {loading ? (
             <ActivityIndicator
@@ -287,17 +312,61 @@ const LeagueGameScheduleScreen = () => {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <View>
-              <Text style={styles.sectionEyebrow}>Remaining Matches</Text>
-              <Text style={styles.sectionTitle}>{MESSAGE_UPCOMING}</Text>
+              <Text style={styles.sectionEyebrow}>MATCH SCHEDULE</Text>
+              <Text style={styles.sectionTitle}>
+                {activeTab === "FUTURE" ? "남은 경기 일정" : "지난 경기 기록"}
+              </Text>
             </View>
-            {!loading && games.length > 0 ? (
+            {!loading && filteredGames.length > 0 ? (
               <View style={styles.countBadge}>
                 <Text style={styles.countBadgeText}>
-                  {games.length}
+                  {filteredGames.length}
                   {MESSAGE_GAME_UNIT}
                 </Text>
               </View>
             ) : null}
+          </View>
+
+          {/* 카테고리 전환 탭 */}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                activeTab === "PAST" && styles.activeTab,
+              ]}
+              onPress={() => {
+                setActiveTab("PAST");
+                setVisibleCount(INITIAL_VISIBLE_COUNT);
+              }}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "PAST" && styles.activeTabText,
+                ]}
+              >
+                PAST MATCHES
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                activeTab === "FUTURE" && styles.activeTab,
+              ]}
+              onPress={() => {
+                setActiveTab("FUTURE");
+                setVisibleCount(INITIAL_VISIBLE_COUNT);
+              }}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "FUTURE" && styles.activeTabText,
+                ]}
+              >
+                FUTURE MATCHES
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {loading ? (
@@ -316,7 +385,9 @@ const LeagueGameScheduleScreen = () => {
                     key={game.id}
                     style={[
                       styles.scheduleItem,
-                      index === 0 && styles.scheduleItemHighlight,
+                      activeTab === "FUTURE" &&
+                        index === 0 &&
+                        styles.scheduleItemHighlight,
                     ]}
                   >
                     {/* 번호 + 경기 정보 가로 배치 */}
@@ -328,12 +399,28 @@ const LeagueGameScheduleScreen = () => {
                       </View>
 
                       <View style={styles.scheduleMain}>
-                        <Text style={styles.scheduleMatchText}>
+                        <Text
+                          style={[
+                            styles.scheduleMatchText,
+                            activeTab === "FUTURE" &&
+                              index === 0 &&
+                              styles.scheduleMatchTextHighlight,
+                          ]}
+                        >
                           {game.home} vs {game.away}
                         </Text>
-                        <Text style={styles.scheduleDateText}>
-                          {formatScheduleDate(game.matchDate)}
-                        </Text>
+                        <View style={styles.scheduleDateRow}>
+                          <Text style={styles.scheduleDateText}>
+                            {formatScheduleDate(game.matchDate)}
+                          </Text>
+                          {activeTab === "PAST" &&
+                          game.homeScore !== null &&
+                          game.awayScore !== null ? (
+                            <Text style={styles.scheduleScoreText}>
+                              {game.homeScore} : {game.awayScore}
+                            </Text>
+                          ) : null}
+                        </View>
                       </View>
                     </View>
                   </View>
@@ -352,7 +439,11 @@ const LeagueGameScheduleScreen = () => {
               ) : null}
             </>
           ) : (
-            <Text style={styles.emptyText}>{MESSAGE_NO_UPCOMING}</Text>
+            <Text style={styles.emptyText}>
+              {activeTab === "FUTURE"
+                ? MESSAGE_NO_UPCOMING
+                : "과거 경기 기록이 없습니다."}
+            </Text>
           )}
         </View>
       </ScrollView>

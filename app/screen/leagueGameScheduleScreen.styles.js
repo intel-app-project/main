@@ -151,7 +151,36 @@ export const styles = StyleSheet.create({
   },
   scheduleList: {
     marginTop: 18,
-    gap: 10,
+    gap: 12, // 세로 리스트 간격 유지
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#ebe3d6",
+    borderRadius: 14,
+    padding: 4,
+    marginTop: 18,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 10,
+  },
+  activeTab: {
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#7a736a",
+  },
+  activeTabText: {
+    color: "#e76f51",
   },
   scheduleItem: {
     gap: 12,
@@ -162,14 +191,15 @@ export const styles = StyleSheet.create({
     borderColor: "rgba(112, 92, 48, 0.08)",
   },
   scheduleItemRow: {
-    // 번호 + 경기정보 가로 정렬
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
   scheduleItemHighlight: {
-    borderColor: "rgba(74, 124, 89, 0.22)",
-    backgroundColor: "#f4efe5",
+    borderColor: "#e76f51",
+    backgroundColor: "#fffafa",
+    elevation: 5,
+    borderWidth: 1.8,
   },
   scheduleIndexBadge: {
     width: 42,
@@ -179,10 +209,16 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#dfe8d7",
   },
+  scheduleIndexBadgeHighlight: {
+    backgroundColor: "#e76f51",
+  },
   scheduleIndexText: {
     color: "#4a7c59",
     fontSize: 13,
     fontWeight: "800",
+  },
+  scheduleIndexTextHighlight: {
+    color: "#ffffff",
   },
   scheduleMain: {
     flex: 1,
@@ -194,10 +230,23 @@ export const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "700",
   },
+  scheduleMatchTextHighlight: {
+    color: "#e76f51",
+  },
+  scheduleDateRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   scheduleDateText: {
     color: "#7a736a",
     fontSize: 13,
     lineHeight: 18,
+  },
+  scheduleScoreText: {
+    color: "#4a7c59",
+    fontSize: 14,
+    fontWeight: "900",
   },
   loadMoreButton: {
     marginTop: 16,
@@ -224,7 +273,6 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
   },
-  // 라인업 짜기 버튼 (isDirector일 때만 표시)
   lineupBtn: {
     backgroundColor: "#4a7c59",
     borderRadius: 10,
