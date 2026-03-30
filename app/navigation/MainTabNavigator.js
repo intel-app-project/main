@@ -84,7 +84,18 @@ const MainTabNavigator = ({ route }) => {
           .single();
 
         if (error) {
-          console.error("[MainTabNavigator] Fetch error:", error);
+          const { data: data2, error: error2 } = await supabase
+            .from("member")
+            .select("Primary_Position")
+            .eq("ID", id)
+            .single();
+          
+          if (data2) {
+            console.log("[MainTabNavigator] Position found (ID):", data2.Primary_Position);
+            setPosition(data2.Primary_Position);
+          } else {
+            console.error("[MainTabNavigator] Fetch error:", error);
+          }
         } else if (data) {
           console.log("[MainTabNavigator] Position found:", data.Primary_Position);
           setPosition(data.Primary_Position);

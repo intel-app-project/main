@@ -16,8 +16,18 @@ export const pick = (obj, keys) => {
 
 export const findMemberByUserId = (members, userId) =>
   members.find((member) => {
-    const idVal = member.Id;
-    return idVal !== null && idVal !== undefined && idVal === Number(userId);
+    const idVal = pick(member, ["Id", "id"]);
+    const userIdVal = pick(member, ["User_ID", "user_id"]);
+    const targetIdStr = String(userId ?? "").trim();
+
+    return (
+      (idVal !== null &&
+        idVal !== undefined &&
+        String(idVal).trim() === targetIdStr) ||
+      (userIdVal !== null &&
+        userIdVal !== undefined &&
+        String(userIdVal).trim() === targetIdStr)
+    );
   });
 
 export const parseJsonField = (value) => {
@@ -34,30 +44,37 @@ export const parseJsonField = (value) => {
 
 export const getAttendanceValue = (value, memberId) => {
   const parsedValue = parseJsonField(value);
-  const mId = Number(memberId);
+  const normalizedMemberId = String(memberId ?? "").trim();
 
-  if (!mId || parsedValue === null || parsedValue === undefined) {
+  if (!normalizedMemberId) {
+    return null;
+  }
+
+  if (parsedValue === null || parsedValue === undefined) {
     return null;
   }
 
   if (Array.isArray(parsedValue)) {
     for (const item of parsedValue) {
-      const nestedValue = getAttendanceValue(item, mId);
-      if (nestedValue !== null) return nestedValue;
+      const nestedValue = getAttendanceValue(item, normalizedMemberId);
+      if (nestedValue !== null) {
+        return nestedValue;
+      }
     }
     return null;
   }
 
   if (typeof parsedValue === "object") {
-    // JS 객체의 키는 문자열이지만 숫자를 인덱스로 조회 시 자동 변환됨
-    if (Object.prototype.hasOwnProperty.call(parsedValue, mId)) {
-      const attendanceValue = Number(parsedValue[mId]);
+    if (Object.prototype.hasOwnProperty.call(parsedValue, normalizedMemberId)) {
+      const attendanceValue = Number(parsedValue[normalizedMemberId]);
       return Number.isNaN(attendanceValue) ? null : attendanceValue;
     }
 
     for (const nestedValue of Object.values(parsedValue)) {
-      const resolvedValue = getAttendanceValue(nestedValue, mId);
-      if (resolvedValue !== null) return resolvedValue;
+      const resolvedValue = getAttendanceValue(nestedValue, normalizedMemberId);
+      if (resolvedValue !== null) {
+        return resolvedValue;
+      }
     }
   }
 
@@ -170,8 +187,8 @@ export const formatTeamLabel = (teamId, fallbackLabel) => {
 
 export const buildTeamNameMap = (teams) =>
   teams.reduce((result, team) => {
-    const teamId = team.id;
-    const teamName = team.name;
+    const teamId = pick(team, ["Id", "id"]);
+    const teamName = pick(team, ["Name", "name"]);
 
     if (teamId !== null && teamId !== undefined && teamName) {
       result[String(teamId)] = String(teamName);
@@ -232,13 +249,14 @@ export const mergeAttendanceStatus = (currentStatus, nextStatus) => {
     : currentStatus;
 };
 
-export const isActiveSchedule = (row) => !row.deleted_at;
+export const isActiveSchedule = (row) =>
+  !pick(row, ["deleted_at", "deletedAt"]);
 
 export const matchScheduleForUser = (row, member) => {
-  const homeTeamId = row.home;
-  const awayTeamId = row.away;
-  const memberTeamId = member.Team;
-  const memberId = member.Id;
+  const homeTeamId = pick(row, ["home", "home_team"]);
+  const awayTeamId = pick(row, ["away", "away_team"]);
+  const memberTeamId = pick(member, ["Team", "team"]);
+  const memberId = pick(member, ["Id", "id"]);
   const homeAttendance = getAttendanceValue(row?.home_member, memberId);
   const awayAttendance = getAttendanceValue(row?.away_member, memberId);
   const hasAttendanceInfo = homeAttendance !== null || awayAttendance !== null;
@@ -284,19 +302,27 @@ export const normalizeSchedule = (
   const date = toDate(dateValue);
   if (!date) return null;
 
-  const homeTeamId = scheduleContext?.homeTeamId ?? row.home;
-  const awayTeamId = scheduleContext?.awayTeamId ?? row.away;
+  const homeTeamId =
+    scheduleContext?.homeTeamId ?? pick(row, ["home", "home_team"]);
+  const awayTeamId =
+    scheduleContext?.awayTeamId ?? pick(row, ["away", "away_team"]);
   const isHome = Boolean(scheduleContext?.isHome);
   const memberTeamId = pick(member, ["Team", "team"]);
   const myTeamId = isHome ? homeTeamId : (awayTeamId ?? memberTeamId);
   const opponentTeamId = isHome ? awayTeamId : homeTeamId;
 
   const teamName =
-    (isHome ? row.home_name : row.away_name) ||
-    resolveTeamName(teamNameMap, myTeamId, "우리 팀");
+    pick(
+      row,
+      isHome ? ["home_name", "team_name"] : ["away_name", "team_name"],
+    ) || resolveTeamName(teamNameMap, myTeamId, "우리 팀");
   const opponent =
-    (isHome ? row.away_name : row.home_name) ||
-    resolveTeamName(teamNameMap, opponentTeamId, "상대팀 미정");
+    pick(
+      row,
+      isHome
+        ? ["away_name", "opponent", "opponent_team", "away_team"]
+        : ["home_name", "opponent", "opponent_team", "home_team"],
+    ) || resolveTeamName(teamNameMap, opponentTeamId, "상대팀 미정");
 
   const scheduleDateValue = pick(row, ["date"]);
   const scheduleDate = String(scheduleDateValue || "");
