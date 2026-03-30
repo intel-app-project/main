@@ -69,7 +69,6 @@ const LineupScreen = ({route}) => {
         const teamId = currentUser?.Team;
         const homeSide = currentSched.home === teamId;
         
-        setMyTeamId(teamId);
         setIsHome(homeSide);
 
         // 참석자 리스트 가공
