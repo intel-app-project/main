@@ -13,11 +13,12 @@ import { INITIAL_LINEUP } from "../constants/scheduleConstants";
 import { parseJsonField } from "../utils/scheduleUtils";
 import { styles } from "./teamInfoScreen.styles";
 import CommonHeader from "../components/CommonHeader";
+import { SvgUri } from "react-native-svg";
 
-const TeamInfoScreen = () => {
+const TeamInfoScreen = ({route}) => {
   const navigation = useNavigation();
-  const route = useRoute();
-  const { id, isDirector } = route.params;
+  const { id: routeId, isDirector } = route.params;
+  const id = Number(routeId);
 
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState([]);
@@ -38,7 +39,7 @@ const TeamInfoScreen = () => {
       const memData = await memRes.json();
 
       // 2. 현재 로그인한 사용자의 팀(Team ID) 식별
-      // route.params.id는 Id(숫자) 또는 User_ID(문자열)일 수 있음
+      // route.params.id는 Id(숫자 PK)임
       const currentUser = memData.find((m) => m.Id === id);
       const myTeamId = currentUser?.Team;
 
@@ -93,12 +94,8 @@ const TeamInfoScreen = () => {
   const getNameById = (id) => {
     if (!id) return "---";
     // teamMembers뿐만 아니라 전체 멤버(또는 현재 불러온 members)에서 검색
-    const member = members.find(
-      (m) =>
-        (m.Id && m.Id.toString() === id.toString()) ||
-        (m.User_ID && m.User_ID === id.toString()),
-    );
-    return member ? member.Name || member.name : id;
+    const member = members.find((m) => m.Id === id);
+    return member ? member.Name : id;
   };
 
   const PositionSlot = ({ pos, idValue }) => (
@@ -220,24 +217,26 @@ const TeamInfoScreen = () => {
             {members.length > 0 ? (
               members.map((member) => (
                 <TouchableOpacity
-                  key={member.Id || member.id || member.User_ID}
+                  key={member.Id}
                   style={styles.memberItem}
                   onPress={() =>
                     navigation.navigate("PlayerDetail", {
-                      id: member.Id || member.User_ID,
+                      id: member.Id,
                       isDirector,
                     })
                   }
                 >
                   <View style={styles.memberInfo}>
                     <View style={styles.memberAvatar}>
-                      <Text style={styles.memberAvatarText}>
-                        {(member.Name || member.name || "P")[0]}
-                      </Text>
+                      <SvgUri
+                        uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${member.Name}`}
+                        width="100%"
+                        height="100%"
+                      />
                     </View>
                     <View>
                       <Text style={styles.memberName}>
-                        {member.Name || member.name}
+                        {member.Name}
                       </Text>
                       <Text style={styles.memberPos}>
                         {member.Primary_Position || "미지정"}
