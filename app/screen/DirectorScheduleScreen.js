@@ -8,10 +8,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 
 const DirectorScheduleScreen = ({navigation, route}) => {
-    const { id } = route.params;
     const [schedules, setSchedules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [teamId, setTeamId] = useState(null);
+    const directorId = route.params.id; // 감독 사용자 ID
 
     useEffect(() => {
         fetchTeamInfo();
@@ -19,14 +19,26 @@ const DirectorScheduleScreen = ({navigation, route}) => {
 
     const fetchTeamInfo = async () => {
         try {
+        const { id } = route.params;
+
             const { data, error } = await supabase
                 .from("member")
                 .select("Team")
-                .eq("Id", id)
+                .eq("ID", id)
                 .single();
 
-            if (error) throw error;
-            setTeamId(data.Team);
+            if (error) {
+                const { data: data2, error: error2 } = await supabase
+                    .from("member")
+                    .select("Team")
+                    .eq("Id", id)
+                    .single();
+                
+                if (error2) throw error2;
+                setTeamId(data2.Team);
+            } else {
+                setTeamId(data.Team);
+            }
         } catch (e) {
             console.error("Error fetching team info:", e);
             Alert.alert("오류", "팀 정보를 불러오지 못했습니다.");
@@ -99,7 +111,7 @@ const DirectorScheduleScreen = ({navigation, route}) => {
                                     style={styles.lineupBtn}
                                     onPress={() => navigation.navigate("Lineup", {
                                         targetDate: item.date,
-                                        id: id,
+                                        id: directorId,
                                     })}
                                 >
                                     <Text style={styles.lineupBtnText}>📋 라인업 짜기</Text>

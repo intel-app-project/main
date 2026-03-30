@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
-import { SvgUri } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
@@ -14,15 +13,6 @@ import CommonHeader from "../components/CommonHeader";
 const PositionSlot = ({ pos, name, highlight }) => (
   <View style={[styles.slotStadium, highlight && styles.slotHighlightStadium]}>
     <Text style={styles.slotPosStadium}>{pos}</Text>
-    {name && (
-      <View style={styles.slotAvatarContainer}>
-        <SvgUri
-          uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${name}`}
-          width="100%"
-          height="100%"
-        />
-      </View>
-    )}
     <Text
       style={[
         styles.slotNameStadium,
@@ -350,19 +340,8 @@ const MyGameScreen = ({ route }) => {
                 {matchData.roster.length > 0 ? (
                   matchData.roster.map((item) => (
                     <View key={item.id} style={styles.playerCard}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                        <View style={styles.playerAvatarContainer}>
-                          <SvgUri
-                            uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${item.name}`}
-                            width="100%"
-                            height="100%"
-                          />
-                        </View>
-                        <View>
-                          <Text style={styles.playerName}>{item.name}</Text>
-                          <Text style={styles.playerMeta}>{item.meta}</Text>
-                        </View>
-                      </View>
+                      <Text style={styles.playerName}>{item.name}</Text>
+                      <Text style={styles.playerMeta}>{item.meta}</Text>
                     </View>
                   ))
                 ) : (
