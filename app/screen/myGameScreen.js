@@ -13,7 +13,6 @@ import CommonHeader from "../components/CommonHeader";
 
 const PositionSlot = ({ pos, name, highlight }) => (
   <View style={[styles.slotStadium, highlight && styles.slotHighlightStadium]}>
-    <Text style={styles.slotPosStadium}>{pos}</Text>
     {name && (
       <View style={styles.slotAvatarContainer}>
         <SvgUri
@@ -23,20 +22,23 @@ const PositionSlot = ({ pos, name, highlight }) => (
         />
       </View>
     )}
-    <Text
-      style={[
-        styles.slotNameStadium,
-        highlight && styles.slotNameHighlightStadium,
-      ]}
-      numberOfLines={1}
-    >
-      {name || "---"}
-    </Text>
+    <View style={styles.slotBottomRow}>
+      <Text
+        style={[
+          styles.slotNameStadium,
+          highlight && styles.slotNameHighlightStadium,
+        ]}
+        numberOfLines={1}
+      >
+        {name || "---"}
+      </Text>
+      <Text style={styles.slotPosStadium}>{pos}</Text>
+    </View>
   </View>
 );
 
 const MyGameScreen = ({ route }) => {
-  const { id, targetDate = null } = route.params;
+  const { id, targetDate } = route.params;
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [matchData, setMatchData] = useState(null);
@@ -102,23 +104,52 @@ const MyGameScreen = ({ route }) => {
           }
         };
 
-        let lineup = parseJson(selected?.lineup);
-        if (!lineup.defense) lineup = { defense: lineup, batting: [] };
-
         const isHome = selected?.home === member?.Team;
+        const rawLineupData = isHome 
+          ? selected?.home_lineup 
+          : selected?.away_lineup;
+
+        let lineup = parseJson(rawLineupData);
+        if (lineup && !lineup.defense && !lineup.batting) {
+          lineup = { defense: lineup, batting: Array(9).fill(null) };
+        }
+        if (!lineup || !lineup.defense) {
+          lineup = { defense: {}, batting: Array(9).fill(null) };
+        }
+
         const currentMemberMap = parseJson(
           isHome ? selected?.home_member : selected?.away_member,
         );
 
         const roster = (members || [])
-          .filter((m) => m?.Team === member?.Team && currentMemberMap[m?.Id])
+          .filter((m) => m.Team === member.Team && currentMemberMap[m.Id])
           .map((m) => ({
-            id: m?.Id,
-            name: m?.Name,
-            meta: `#${m.Num} · ${m?.Primary_Position ?? "미정"}`,
+            id: m.Id,
+            name: m.Name,
+            meta: `#${m.Num} · ${m.Primary_Position}`,
           }));
 
         roster.sort((a, b) => a.name.localeCompare(b.name, "ko"));
+
+        const getNameById = (mId) => {
+          if (!mId) return null;
+          const mem = (members || []).find(m => String(m.Id) === String(mId));
+          return mem?.Name || null;
+        };
+
+        const defenseNames = {};
+        if (lineup.defense) {
+          Object.keys(lineup.defense).forEach((pos) => {
+            if (pos !== "BENCH") {
+              const mId = lineup.defense[pos];
+              defenseNames[pos] = getNameById(mId);
+            }
+          });
+        }
+
+        const benchNames = (lineup.defense?.BENCH || [])
+          .map((id) => getNameById(id))
+          .filter((n) => n);
 
         if (mounted) {
           setMatchData({
@@ -131,10 +162,8 @@ const MyGameScreen = ({ route }) => {
             stadiumName: "수원 KT 위즈파크",
             isHome: selected?.home === member?.Team,
             playerName: member.Name,
-            defense: lineup.defense,
-            bench: Array.isArray(lineup.defense?.BENCH)
-              ? lineup.defense.BENCH
-              : [],
+            defense: defenseNames,
+            bench: benchNames,
             roster,
           });
         }
@@ -348,9 +377,9 @@ const MyGameScreen = ({ route }) => {
                 <Text style={styles.cardEyebrow}>Roster</Text>
                 <Text style={styles.cardTitle}>참석 선수 명단</Text>
                 {matchData.roster.length > 0 ? (
-                  matchData.roster.map((item) => (
-                    <View key={item.id} style={styles.playerCard}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={styles.rosterGrid}>
+                    {matchData.roster.map((item) => (
+                      <View key={item.id} style={styles.playerCard}>
                         <View style={styles.playerAvatarContainer}>
                           <SvgUri
                             uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${item.name}`}
@@ -358,13 +387,15 @@ const MyGameScreen = ({ route }) => {
                             height="100%"
                           />
                         </View>
-                        <View>
-                          <Text style={styles.playerName}>{item.name}</Text>
-                          <Text style={styles.playerMeta}>{item.meta}</Text>
-                        </View>
+                        <Text style={styles.playerName} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Text style={styles.playerMeta} numberOfLines={1}>
+                          {item.meta}
+                        </Text>
                       </View>
-                    </View>
-                  ))
+                    ))}
+                  </View>
                 ) : (
                   <Text style={styles.emptyText}>
                     불러올 선수 명단이 없습니다.

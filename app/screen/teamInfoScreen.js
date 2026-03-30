@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import { INITIAL_LINEUP } from "../constants/scheduleConstants";
 import { parseJsonField } from "../utils/scheduleUtils";
@@ -15,7 +15,7 @@ import { styles } from "./teamInfoScreen.styles";
 import CommonHeader from "../components/CommonHeader";
 import { SvgUri } from "react-native-svg";
 
-const TeamInfoScreen = ({route}) => {
+const TeamInfoScreen = ({ route }) => {
   const navigation = useNavigation();
   const { id: routeId, isDirector } = route.params;
   const id = Number(routeId);
@@ -23,11 +23,13 @@ const TeamInfoScreen = ({route}) => {
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState([]);
   const [bestLineup, setBestLineup] = useState(INITIAL_LINEUP);
-  const [teamInfo, setTeamInfo] = useState(null); // 팀 기본 정보(이름, trait)
+  const [teamInfo, setTeamInfo] = useState(null);
 
-  useEffect(() => {
-    fetchTeamData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchTeamData();
+    }, [])
+  );
 
   const fetchTeamData = async () => {
     try {
@@ -43,45 +45,34 @@ const TeamInfoScreen = ({route}) => {
       const currentUser = memData.find((m) => m.Id === id);
       const myTeamId = currentUser?.Team;
 
-      // 3. 팀 정보 가져오기
-      const teamRes = await fetch(`${API_BASE_URL}/api/team`);
-      if (teamRes.ok) {
-        const teamListData = await teamRes.json();
-        const currentTeam = teamListData.find((t) => t.id === myTeamId);
-        setTeamInfo(currentTeam);
-      }
+      // 3. 팀 정보 가져오기 (특정 팀 ID 기준)
+      if (myTeamId) {
+        const teamRes = await fetch(`${API_BASE_URL}/api/team/${myTeamId}`);
+        if (teamRes.ok) {
+          const teamData = await teamRes.json();
+          setTeamInfo(teamData);
 
-      // 4. 소속 팀원만 필터링 (팀이 없는 경우는 제외)
-      const teamMembers = myTeamId
-        ? memData.filter((m) => m.Team === myTeamId)
-        : [];
-
-      // 정렬: 번호(Num) 순으로 정렬 (숫자 변환 필요)
-      const sortedMembers = teamMembers.sort((a, b) => {
-        const numA = parseInt(a.Num || "0", 10);
-        const numB = parseInt(b.Num || "0", 10);
-        return numA - numB;
-      });
-      setMembers(sortedMembers);
-
-      // 5. 'BEST' 키워드로 저장된 베스트 라인업 가져오기
-      const lineupRes = await fetch(`${API_BASE_URL}/api/schedule/date/BEST`);
-      if (lineupRes.ok) {
-        const lineupData = await lineupRes.json();
-        if (lineupData && lineupData.length > 0) {
-          const bestSched = lineupData[0];
-          // 본인의 팀이 홈이면 home_lineup, 어웨이면 away_lineup 사용
-          const bestLineupRaw =
-            bestSched.home === myTeamId
-              ? bestSched.home_lineup
-              : bestSched.away === myTeamId
-                ? bestSched.away_lineup
-                : bestSched.home_lineup || bestSched.away_lineup;
-
-          if (bestLineupRaw) {
-            setBestLineup(parseJsonField(bestLineupRaw));
+          // 5. 팀 테이블의 best_member 데이터 우선 사용
+          if (teamData?.best_member) {
+            let parsed = parseJsonField(teamData.best_member);
+            // 구조 보정
+            if (parsed && !parsed.defense) {
+              parsed = { defense: parsed, batting: [] };
+            }
+            setBestLineup(parsed || INITIAL_LINEUP);
           }
         }
+      }
+
+      // 4. 소속 팀원만 필터링 및 정렬
+      if (myTeamId) {
+        const teamMembers = memData.filter((m) => m.Team === myTeamId);
+        const sortedMembers = teamMembers.sort((a, b) => {
+          const numA = parseInt(a.Num || "0", 10);
+          const numB = parseInt(b.Num || "0", 10);
+          return numA - numB;
+        });
+        setMembers(sortedMembers);
       }
     } catch (error) {
       console.error("[TeamInfoScreen] Fetch error:", error);
@@ -90,22 +81,36 @@ const TeamInfoScreen = ({route}) => {
     }
   };
 
-  // ID를 이름으로 변환하는 헬퍼 함수
-  const getNameById = (id) => {
-    if (!id) return "---";
-    // teamMembers뿐만 아니라 전체 멤버(또는 현재 불러온 members)에서 검색
-    const member = members.find((m) => m.Id === id);
-    return member ? member.Name : id;
+  // ID를 기반으로 멤버 정보를 가져오는 헬퍼 함수
+  const getMemberById = (id) => {
+    if (!id) return null;
+    return members.find((m) => m.Id === id);
   };
 
-  const PositionSlot = ({ pos, idValue }) => (
-    <View style={styles.slotStadium}>
-      <Text style={styles.slotPosStadium}>{pos}</Text>
-      <Text style={styles.slotNameStadium} numberOfLines={1}>
-        {getNameById(idValue)}
-      </Text>
-    </View>
-  );
+  const PositionSlot = ({ pos, idValue }) => {
+    const member = getMemberById(idValue);
+    const displayName = member ? member.Name : "---";
+
+    return (
+      <View style={styles.slotStadium}>
+        {member && (
+          <View style={styles.slotAvatarContainer}>
+            <SvgUri
+              uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${displayName}`}
+              width="100%"
+              height="100%"
+            />
+          </View>
+        )}
+        <View style={styles.slotBottomRow}>
+          <Text style={styles.slotNameStadium} numberOfLines={1}>
+            {displayName}
+          </Text>
+          <Text style={styles.slotPosStadium}>{pos}</Text>
+        </View>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -129,7 +134,7 @@ const TeamInfoScreen = ({route}) => {
         showsVerticalScrollIndicator={false}
       >
         {/* 최상단: 팀 기본 정보 섹션 */}
-        <View style={styles.teamInfoSection}>
+        <View style={styles.teamInfoSection} >
           <View style={styles.teamInfoCard}>
             <View style={styles.teamLogoPlaceholder}>
               <Text style={styles.teamLogoText}>
@@ -152,9 +157,18 @@ const TeamInfoScreen = ({route}) => {
           <View style={styles.fieldCard}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>베스트 라인업</Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>BEST 10</Text>
-              </View>
+              {isDirector ? (
+                <TouchableOpacity 
+                   onPress={() => navigation.navigate("BestMember", { id })}
+                   style={[styles.badge, { backgroundColor: '#4a7c59' }]}
+                >
+                  <Text style={[styles.badgeText, { color: '#fff' }]}>관리하기</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>BEST 10</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.fieldContainer}>
@@ -215,37 +229,34 @@ const TeamInfoScreen = ({route}) => {
             </View>
 
             {members.length > 0 ? (
-              members.map((member) => (
-                <TouchableOpacity
-                  key={member.Id}
-                  style={styles.memberItem}
-                  onPress={() =>
-                    navigation.navigate("PlayerDetail", {
-                      id: member.Id,
-                      isDirector,
-                    })
-                  }
-                >
-                  <View style={styles.memberInfo}>
-                    <View style={styles.memberAvatar}>
+              <View style={styles.rosterGrid}>
+                {members.map((member) => (
+                  <TouchableOpacity
+                    key={member.Id}
+                    style={styles.playerCard}
+                    onPress={() =>
+                      navigation.navigate("PlayerDetail", {
+                        id: member.Id,
+                        isDirector,
+                      })
+                    }
+                  >
+                    <View style={styles.playerAvatarContainer}>
                       <SvgUri
                         uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${member.Name}`}
                         width="100%"
                         height="100%"
                       />
                     </View>
-                    <View>
-                      <Text style={styles.memberName}>
-                        {member.Name}
-                      </Text>
-                      <Text style={styles.memberPos}>
-                        {member.Primary_Position || "미지정"}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.memberNum}>#{member.Num || "00"}</Text>
-                </TouchableOpacity>
-              ))
+                    <Text style={styles.playerNameText} numberOfLines={1}>
+                      {member.Name}
+                    </Text>
+                    <Text style={styles.playerMeta} numberOfLines={1}>
+                      #{member.Num || "00"} · {member.Primary_Position || "미정"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             ) : (
               <Text style={styles.emptyText}>소속된 멤버가 없습니다.</Text>
             )}
