@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 const CommonFooter = ({ state, navigation, Id, userPosition }) => {
-  console.log("[CommonFooter] Received Id:", Id);
   const insets = useSafeAreaInsets();
   const [position, setPosition] = useState(userPosition);
   const [loading, setLoading] = useState(false);
@@ -15,11 +14,6 @@ const CommonFooter = ({ state, navigation, Id, userPosition }) => {
       setLoading(false);
 
     const fetchMemberPosition = async () => {
-      if (!Id) {
-        setLoading(false);
-        return;
-      }
-
       try {
         const { data, error } = await supabase
           .from("member")

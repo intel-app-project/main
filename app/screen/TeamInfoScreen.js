@@ -17,7 +17,7 @@ import CommonHeader from "../components/CommonHeader";
 const TeamInfoScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { id, isDirector } = route.params || {};
+  const { id, isDirector } = route.params;
 
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState([]);

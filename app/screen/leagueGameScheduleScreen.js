@@ -142,7 +142,6 @@ const normalizeSchedule = (row, teamNameMap) => {
   const away = pick(row, ["away", "away_team"]);
 
   return {
-    id: String(pick(row, ["id", "Id"]) || `${home}-${away}-${matchDate}`),
     home: getTeamName(teamNameMap, home, "HOME"),
     away: getTeamName(teamNameMap, away, "AWAY"),
     matchDate,
@@ -313,7 +312,7 @@ const LeagueGameScheduleScreen = () => {
               <View style={styles.scheduleList}>
                 {visibleGames.map((game, index) => (
                   <View
-                    key={game.id}
+                    key={game.matchDate.getTime().toString()}
                     style={[
                       styles.scheduleItem,
                       index === 0 && styles.scheduleItemHighlight,

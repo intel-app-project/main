@@ -22,7 +22,7 @@ const ManagerScheduleScreen = ({ navigation }) => {
   const [home, setHome] = useState("");
   const [away, setAway] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [editingId, setEditingId] = useState(null); // 수정 중인 항목의 ID
+  const [editingDate, setEditingDate] = useState(null); // 수정 중인 항목의 날짜(ID 대용)
 
   useEffect(() => {
     fetchSchedules();
@@ -70,20 +70,20 @@ const ManagerScheduleScreen = ({ navigation }) => {
         away: parseInt(away, 10)
       };
 
-      await saveSchedule(payload, editingId);
+      await saveSchedule(payload, editingDate);
       
       Alert.alert(
-        editingId ? "수정 성공" : "등록 성공", 
-        editingId ? "일정이 성공적으로 수정되었습니다." : "일정이 성공적으로 등록되었습니다."
+        editingDate ? "수정 성공" : "등록 성공", 
+        editingDate ? "일정이 성공적으로 수정되었습니다." : "일정이 성공적으로 등록되었습니다."
       );
       
       handleCancelEdit();
       fetchSchedules();
     } catch (e) {
-      console.error(editingId ? "일정 수정 오류:" : "일정 등록 오류:", e);
+      console.error(editingDate ? "일정 수정 오류:" : "일정 등록 오류:", e);
       Alert.alert(
-        editingId ? "수정 실패" : "등록 실패", 
-        editingId ? "일정 수정 중 오류가 발생했습니다." : "일정 등록 중 오류가 발생했습니다."
+        editingDate ? "수정 실패" : "등록 실패", 
+        editingDate ? "일정 수정 중 오류가 발생했습니다." : "일정 등록 중 오류가 발생했습니다."
       );
     } finally {
       setSubmitting(false);
@@ -91,17 +91,17 @@ const ManagerScheduleScreen = ({ navigation }) => {
   };
 
   const handleEdit = (item) => {
-    setEditingId(item.id);
+    setEditingDate(item.date);
     setDate(item.date);
     setHome(item.home.toString());
     setAway(item.away.toString());
   };
 
   const handleCancelEdit = () => {
-    resetScheduleForm({ setEditingId, setDate, setHome, setAway });
+    resetScheduleForm({ setEditingDate, setDate, setHome, setAway });
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (date) => {
     Alert.alert(
       "일정 삭제",
       "정말로 이 일정을 삭제하시겠습니까?",
@@ -112,7 +112,7 @@ const ManagerScheduleScreen = ({ navigation }) => {
           style: "destructive", 
           onPress: async () => {
             try {
-              await deleteSchedule(id);
+              await deleteSchedule(date);
               Alert.alert("삭제 완료", "일정이 성공적으로 삭제되었습니다.");
               fetchSchedules();
             } catch (e) {
@@ -152,7 +152,7 @@ const ManagerScheduleScreen = ({ navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.deleteButton} 
-                  onPress={() => handleDelete(item.id)}
+                  onPress={() => handleDelete(item.date)}
                 >
                   <Text style={styles.deleteButtonText}>삭제</Text>
                 </TouchableOpacity>
@@ -194,15 +194,15 @@ const ManagerScheduleScreen = ({ navigation }) => {
             keyboardType="numeric"
          />
           <TouchableOpacity 
-             style={[styles.submitButton, submitting && styles.submitButtonDisabled, editingId && styles.updateButton]} 
+             style={[styles.submitButton, submitting && styles.submitButtonDisabled, editingDate && styles.updateButton]} 
              onPress={handleSubmit} 
              disabled={submitting}
           >
              <Text style={styles.submitButtonText}>
-               {submitting ? (editingId ? "수정 중..." : "등록 중...") : (editingId ? "일정 수정 완료" : "일정 등록")}
+               {submitting ? (editingDate ? "수정 중..." : "등록 중...") : (editingDate ? "일정 수정 완료" : "일정 등록")}
              </Text>
           </TouchableOpacity>
-          {editingId && (
+          {editingDate && (
             <TouchableOpacity 
                style={styles.cancelButton} 
                onPress={handleCancelEdit}
@@ -225,7 +225,7 @@ const ManagerScheduleScreen = ({ navigation }) => {
         ) : (
           <FlatList
             data={schedules}
-            keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
+            keyExtractor={(item, index) => item.date ? item.date.toString() : index.toString()}
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
           />
