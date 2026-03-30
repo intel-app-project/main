@@ -5,11 +5,9 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import LoginScreen from "./screen/loginScreen";
 import MainTabNavigator from "./navigation/MainTabNavigator";
-import LoginScreen from "./screen/loginScreen";
-import MainTabNavigator from "./navigation/MainTabNavigator";
 
-console.log("LoginScreen:", typeof LoginScreen);       // "function" 이어야 함
-console.log("MainTabNavigator:", typeof MainTabNavigator); // "function" 이어야 함
+
+
 const Stack = createStackNavigator();
 
 export default function App() {
