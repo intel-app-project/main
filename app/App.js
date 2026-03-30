@@ -9,7 +9,7 @@ import PlayerScheduleScreen from "./screen/playerScheduleScreen";
 import PlayerDetailScreen from "./screen/playerDetailScreen";
 import LeagueGameScheduleScreen from "./screen/leagueGameScheduleScreen";
 import LineupScreen from "./screen/lineupScreen";
-import MyGameScreen from "./screen/myGame";
+import MyGameScreen from "./screen/myGameScreen";
 import TeamInfoScreen from "./screen/teamInfoScreen";
 import DirectorScheduleScreen from "./screen/directorScheduleScreen";
 
@@ -19,7 +19,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator 
+        <Stack.Navigator
           initialRouteName="Login"
           screenOptions={{
             headerShown: false,
@@ -35,21 +35,32 @@ export default function App() {
           <Stack.Screen name="TeamInfo" component={TeamInfoScreen} />
 
           {/* 리그일정 화면 */}
-          <Stack.Screen name="LeagueGameSchedule" component={LeagueGameScheduleScreen} />
-          <Stack.Screen name="DirectorSchedule" component={DirectorScheduleScreen} />
+          <Stack.Screen
+            name="LeagueGameSchedule"
+            component={LeagueGameScheduleScreen}
+          />
+          <Stack.Screen
+            name="DirectorSchedule"
+            component={DirectorScheduleScreen}
+          />
 
           {/* 내정보 화면 */}
           <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
 
           {/* 일정관리 화면 */}
-          <Stack.Screen name="PlayerSchedule" component={PlayerScheduleScreen} />
+          <Stack.Screen
+            name="PlayerSchedule"
+            component={PlayerScheduleScreen}
+          />
 
           {/* 라인업 화면 */}
           <Stack.Screen name="Lineup" component={LineupScreen} />
 
           {/* 기록원 화면 */}
-          <Stack.Screen name="ManagerSchedule" component={ManagerScheduleScreen} />
-          
+          <Stack.Screen
+            name="ManagerSchedule"
+            component={ManagerScheduleScreen}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
