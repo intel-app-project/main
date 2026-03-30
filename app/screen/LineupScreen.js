@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   ScrollView,
@@ -7,7 +7,6 @@ import {
   Alert,
   Text,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
   POSITIONS,
@@ -20,7 +19,8 @@ import CommonHeader from "../components/CommonHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const LineupScreen = ({route}) => {
-  const { targetDate, id } = route.params; // id: 사용자 ID (Id 또는 User_ID)
+  const { targetDate, id: routeId } = route.params;
+  const id = Number(routeId);
 
   const [schedule, setSchedule] = useState(null); // 해당 날짜의 경기 일정 데이터
   const [members, setMembers] = useState([]); // 전체 팀원 목록
@@ -29,7 +29,6 @@ const LineupScreen = ({route}) => {
   const [lineup, setLineup] = useState(INITIAL_LINEUP); // 현재 화면에 표시/수정 중인 라인업 데이터
 
   const [isHome, setIsHome] = useState(true); // 현재 사용자가 홈팀인지 여부
-  const [myTeamId, setMyTeamId] = useState(null); // 사용자의 소속 팀 ID
 
   const [activeTab, setActiveTab] = useState("defense"); // 현재 활성화된 탭 ('defense' 또는 'batting')
   const [selectedBattingIdx, setSelectedBattingIdx] = useState(null); // 타순 설정 시 선택된 번호 (0~8)
@@ -65,48 +64,21 @@ const LineupScreen = ({route}) => {
         const memData = await memRes.json();
         setMembers(memData);
 
-        // 현재 로그인 사용자(id) 정보 찾기
-        const currentUser = memData.find(
-          (m) =>
-            (m.Id && m.Id.toString() === id?.toString()) ||
-            (m.User_ID && m.User_ID === id),
-        );
+        // 현재 로그인 사용자 정보 찾기 및 팀 식별
+        const currentUser = memData.find((m) => m.Id === id);
         const teamId = currentUser?.Team;
-        setMyTeamId(teamId);
-
-        // 홈/어웨이 판별
         const homeSide = currentSched.home === teamId;
+        
+        setMyTeamId(teamId);
         setIsHome(homeSide);
 
-        // 해당 팀의 참석자 리스트 (home_member 또는 away_member)
-        const memberStatusColumn = homeSide
-          ? currentSched.home_member
-          : currentSched.away_member;
-        const memberStatus = parseJsonField(memberStatusColumn) || {};
+        // 참석자 리스트 가공
+        const memberStatus = parseJsonField(homeSide ? currentSched.home_member : currentSched.away_member) || {};
+        const attendingIds = Array.isArray(memberStatus)
+          ? memberStatus.map(item => Number(item?.Id || item))
+          : Object.keys(memberStatus).filter(mid => Number(memberStatus[mid]) === 1).map(mid => Number(mid));
 
-        let attendingIds = [];
-        if (Array.isArray(memberStatus)) {
-          attendingIds = memberStatus.map((item) => {
-            if (typeof item === "object" && item !== null) {
-              return (
-                item.id ||
-                item.User_ID ||
-                item.member_id ||
-                ""
-              ).toString();
-            }
-            return item.toString();
-          });
-        } else {
-          attendingIds = Object.keys(memberStatus).filter(
-            (mid) => memberStatus[mid] === 1 || memberStatus[mid] === "1",
-          );
-        }
-
-        const attendingMembers = memData.filter((m) => {
-          const mId = m.Id || m.id || m.User_ID;
-          return mId && attendingIds.includes(mId.toString());
-        });
+        const attendingMembers = memData.filter((m) => m.Id && attendingIds.includes(m.Id));
         setAttendees(attendingMembers);
 
         // 해당 팀의 라인업 로드 (home_lineup 또는 away_lineup)
@@ -145,14 +117,10 @@ const LineupScreen = ({route}) => {
   };
 
   // --- ID를 이름으로 변환하는 헬퍼 함수 ---
-  const getNameById = (id) => {
-    if (!id) return "---";
-    const member = members.find(
-      (m) =>
-        (m.Id && m.Id.toString() === id.toString()) ||
-        (m.User_ID && m.User_ID === id.toString()),
-    );
-    return member ? member.Name || member.name : id;
+  const getNameById = (mid) => {
+    if (!mid) return "---";
+    const member = members.find((m) => m.Id === mid);
+    return member ? member.Name : mid;
   };
 
   // --- 데이터 저장 함수 ---
@@ -175,82 +143,43 @@ const LineupScreen = ({route}) => {
     }
   };
 
-  // --- 핵심 로직: 선수 배정 함수 (ID 기반 저장 - 숫자형 선호) ---
+  // --- 핵심 로직: 선수 배정 함수 ---
   const assignMember = (posOrIdx, member) => {
-    // Id가 있으면 숫자로, 없으면 User_ID 사용
-    const mId = member.Id ? Number(member.Id) : member.User_ID;
-    const sId = mId?.toString();
+    const mId = member.Id;
 
     setLineup((prev) => {
       const newLineup = JSON.parse(JSON.stringify(prev));
 
-      // 1. 수비 위치 설정 모드일 때
       if (activeTab === "defense") {
         const isBench = posOrIdx === "BENCH";
 
-        // 중복 배정 방지: 이미 다른 포지션에 있었다면 비움
-        Object.keys(newLineup.defense).forEach((key) => {
-          if (key !== "BENCH" && newLineup.defense[key]?.toString() === sId) {
-            newLineup.defense[key] = null;
-          }
+        // 중복 방지: 다른 포지션에서 제거
+        Object.keys(newLineup.defense).forEach((k) => {
+          if (k !== "BENCH" && newLineup.defense[k] === mId) newLineup.defense[k] = null;
         });
 
         if (!isBench) {
-          // 주전 포지션(P, C, 1B 등)에 배정할 경우 후보 명단에서 제거
-          newLineup.defense.BENCH = (newLineup.defense.BENCH || []).filter(
-            (id) => id?.toString() !== sId,
-          );
+          newLineup.defense.BENCH = (newLineup.defense.BENCH || []).filter(id => id !== mId);
           newLineup.defense[posOrIdx] = mId;
         } else {
-          // 후보(BENCH)로 등록할 경우 토글 방식 (이미 있으면 제거, 없으면 추가)
-          const currentBench = newLineup.defense.BENCH || [];
-          if (currentBench.some((id) => id?.toString() === sId)) {
-            newLineup.defense.BENCH = currentBench.filter(
-              (id) => id?.toString() !== sId,
-            );
-          } else {
-            if (!newLineup.defense.BENCH) newLineup.defense.BENCH = [];
-            newLineup.defense.BENCH.push(mId);
-          }
+          const bench = newLineup.defense.BENCH || [];
+          newLineup.defense.BENCH = bench.includes(mId) 
+            ? bench.filter(id => id !== mId) 
+            : [...bench, mId];
         }
-      }
-      // 2. 타순 설정 모드일 때
-      else {
-        if (selectedBattingIdx === null) {
-          Alert.alert("알림", "설정할 타순(1~9)을 먼저 선택해주세요.");
+          } else {
+        if (selectedBattingIdx === null) return Alert.alert("알림", "설정할 타순을 먼저 선택해주세요."), prev;
+
+        const isDefender = Object.keys(newLineup.defense).some(k => k !== "BENCH" && newLineup.defense[k] === mId);
+        const hasDH = !!(newLineup.defense.DH && String(newLineup.defense.DH).trim());
+        const isPitcher = newLineup.defense.P === mId;
+
+        if (!(isDefender && !(hasDH && isPitcher))) {
+          Alert.alert("제한", (hasDH && isPitcher) ? "지명타자 설정 시 투수는 타격 불가합니다." : "수비 포지션이 지정된 선수만 가능합니다.");
           return prev;
         }
 
-        // 타순 배정 조건 확인 (지명타자 규칙 등)
-        const isDefender = Object.keys(newLineup.defense).some(
-          (k) => k !== "BENCH" && newLineup.defense[k]?.toString() === sId,
-        );
-        const hasDH = !!(
-          newLineup.defense.DH && newLineup.defense.DH.toString().trim() !== ""
-        );
-        const isPitcher = newLineup.defense.P?.toString() === sId;
-
-        const isEligible = isDefender && !(hasDH && isPitcher); // 지명타자가 있으면 투수는 타격 불가
-
-        if (!isEligible) {
-          if (hasDH && isPitcher) {
-            Alert.alert(
-              "제한",
-              "지명타자(DH)가 설정된 경우 투수는 타순에 들어갈 수 없습니다.",
-            );
-          } else {
-            Alert.alert(
-              "제한",
-              "수비 포지션(또는 DH)이 지정된 선수만 타순에 들어갈 수 있습니다.",
-            );
-          }
-          return prev;
-        }
-
-        // 이미 다른 타순에 있었다면 이전 타순 비움
-        newLineup.batting = newLineup.batting.map((id) =>
-          id?.toString() === sId ? null : id,
-        );
+        newLineup.batting = newLineup.batting.map(id => id === mId ? null : id);
         newLineup.batting[selectedBattingIdx] = mId;
       }
 
@@ -267,8 +196,7 @@ const LineupScreen = ({route}) => {
       );
 
       newLineup.batting = newLineup.batting.map((id) => {
-        const stringId = id?.toString();
-        return stringId && activeHitterIds.has(stringId) ? id : null;
+        return id && activeHitterIds.has(String(id)) ? id : null;
       });
 
       return newLineup;
@@ -278,84 +206,39 @@ const LineupScreen = ({route}) => {
   const handleAutoBench = () => {
     setLineup((prev) => {
       const newLineup = JSON.parse(JSON.stringify(prev));
-      const currentAssignedIds = new Set(
-        Object.keys(newLineup.defense)
-          .filter((k) => k !== "BENCH")
-          .map((k) => newLineup.defense[k]?.toString())
-          .filter((id) => id && id !== ""),
-      );
+      const assigned = new Set(Object.keys(newLineup.defense).filter(k => k !== "BENCH").map(k => String(newLineup.defense[k] || "")));
+      const bench = newLineup.defense.BENCH || [];
 
-      if (!newLineup.defense.BENCH) newLineup.defense.BENCH = [];
-
-      attendees.forEach((member) => {
-        const mId = member.Id ? Number(member.Id) : member.User_ID;
-        if (
-          mId &&
-          !currentAssignedIds.has(mId.toString()) &&
-          !newLineup.defense.BENCH.some(
-            (bid) => bid?.toString() === mId.toString(),
-          )
-        ) {
-          newLineup.defense.BENCH.push(mId);
-        }
+      attendees.forEach(m => {
+        if (m.Id && !assigned.has(String(m.Id)) && !bench.includes(m.Id)) bench.push(m.Id);
       });
+      newLineup.defense.BENCH = [...bench];
 
-      const hasDH = !!(
-        newLineup.defense.DH && newLineup.defense.DH.toString().trim() !== ""
-      );
-      const activeHitterIds = new Set(
-        Object.keys(newLineup.defense)
-          .filter((k) => k !== "BENCH")
-          .filter((k) => !(hasDH && k === "P"))
-          .map((k) => newLineup.defense[k]?.toString())
-          .filter((id) => id && id !== ""),
-      );
-
-      newLineup.batting = newLineup.batting.map((id) => {
-        const stringId = id?.toString();
-        return stringId && activeHitterIds.has(stringId) ? id : null;
-      });
+      const hasDH = !!(newLineup.defense.DH && String(newLineup.defense.DH).trim());
+      const hitters = new Set(Object.keys(newLineup.defense).filter(k => k !== "BENCH" && !(hasDH && k === "P")).map(k => String(newLineup.defense[k] || "")));
+      newLineup.batting = newLineup.batting.map(id => hitters.has(String(id || "")) ? id : null);
 
       return newLineup;
     });
     Alert.alert("완료", "배정되지 않은 인원을 모두 후보로 등록했습니다.");
   };
 
-  const isMemberAssigned = (member) => {
-    const mId = member.Id ? Number(member.Id) : member.User_ID;
-    if (!mId) return false;
-    const sId = mId.toString();
-
+  const isMemberAssigned = (m) => {
+    if (!m.Id) return false;
     if (activeTab === "defense") {
-      const isPos = Object.keys(lineup.defense)
-        .filter((k) => k !== "BENCH")
-        .some((k) => lineup.defense[k]?.toString() === sId);
-      const isBench = (lineup.defense.BENCH || []).some(
-        (bid) => bid?.toString() === sId,
-      );
-      return isPos || isBench;
-    } else {
-      return lineup.batting.some((id) => id?.toString() === sId);
+      return Object.keys(lineup.defense).some(k => k !== "BENCH" && lineup.defense[k] === m.Id) || (lineup.defense.BENCH || []).includes(m.Id);
     }
+    return lineup.batting.includes(m.Id);
   };
 
-  const getAssignedKey = (member) => {
-    const mId = member.Id ? Number(member.Id) : member.User_ID;
-    if (!mId) return null;
-    const sId = mId.toString();
-
+  const getAssignedKey = (m) => {
+    if (!m.Id) return null;
     if (activeTab === "defense") {
-      const pos = Object.keys(lineup.defense).find(
-        (key) => key !== "BENCH" && lineup.defense[key]?.toString() === sId,
-      );
-      if (pos) return pos;
-      if ((lineup.defense.BENCH || []).some((bid) => bid?.toString() === sId))
-        return "후보";
-      return null;
-    } else {
-      const idx = lineup.batting.findIndex((id) => id?.toString() === sId);
-      return idx !== -1 ? `${idx + 1}번` : null;
+      const pos = Object.keys(lineup.defense).find(k => k !== "BENCH" && lineup.defense[k] === m.Id);
+      return pos || ((lineup.defense.BENCH || []).includes(m.Id) ? "후보" : null);
     }
+    const idx = lineup.batting.indexOf(m.Id);
+      return idx !== -1 ? `${idx + 1}번` : null;
   };
 
   if (loading) {
@@ -458,79 +341,16 @@ const LineupScreen = ({route}) => {
                   <View style={styles.moundPlate} />
                 </View>
 
-                {/* 각 포지션 슬롯 배치 (ID를 이름으로 변환) */}
-                <View style={styles.posP}>
+                {/* 각 포지션 슬롯 배치: POSITIONS 상수를 활용한 자동 매핑 */}
+                {POSITIONS.filter(p => p !== "BENCH").map(pos => (
+                  <View key={pos} style={styles[`pos${pos}`]}>
                   <PositionSlot
-                    pos="P"
-                    name={getNameById(lineup.defense.P)}
+                      pos={pos}
+                      name={getNameById(lineup.defense[pos])}
                     stadium
                   />
                 </View>
-                <View style={styles.posC}>
-                  <PositionSlot
-                    pos="C"
-                    name={getNameById(lineup.defense.C)}
-                    stadium
-                  />
-                </View>
-                <View style={styles.pos1B}>
-                  <PositionSlot
-                    pos="1B"
-                    name={getNameById(lineup.defense["1B"])}
-                    stadium
-                  />
-                </View>
-                <View style={styles.pos2B}>
-                  <PositionSlot
-                    pos="2B"
-                    name={getNameById(lineup.defense["2B"])}
-                    stadium
-                  />
-                </View>
-                <View style={styles.pos3B}>
-                  <PositionSlot
-                    pos="3B"
-                    name={getNameById(lineup.defense["3B"])}
-                    stadium
-                  />
-                </View>
-                <View style={styles.posSS}>
-                  <PositionSlot
-                    pos="SS"
-                    name={getNameById(lineup.defense.SS)}
-                    stadium
-                  />
-                </View>
-                <View style={styles.posLF}>
-                  <PositionSlot
-                    pos="LF"
-                    name={getNameById(lineup.defense.LF)}
-                    stadium
-                  />
-                </View>
-                <View style={styles.posCF}>
-                  <PositionSlot
-                    pos="CF"
-                    name={getNameById(lineup.defense.CF)}
-                    stadium
-                  />
-                </View>
-                <View style={styles.posRF}>
-                  <PositionSlot
-                    pos="RF"
-                    name={getNameById(lineup.defense.RF)}
-                    stadium
-                  />
-                </View>
-
-                {/* 지명타자(DH) 배치 */}
-                <View style={styles.posDH}>
-                  <PositionSlot
-                    pos="DH"
-                    name={getNameById(lineup.defense.DH)}
-                    stadium
-                  />
-                </View>
+                ))}
               </View>
             </View>
           </View>
@@ -564,99 +384,41 @@ const LineupScreen = ({route}) => {
 
         <View style={styles.rosterSection}>
           <Text style={styles.sectionTitle}>참석자 명단 (Status=1)</Text>
-          {attendees.map((member) => {
-            const mId = member.Id ? Number(member.Id) : member.User_ID;
-            const sId = mId?.toString();
-            const isDefender = Object.keys(lineup.defense).some(
-              (k) => k !== "BENCH" && lineup.defense[k]?.toString() === sId,
-            );
-            const hasDH = !!(
-              lineup.defense.DH && lineup.defense.DH.toString().trim() !== ""
-            );
-            const isPitcher = lineup.defense.P?.toString() === sId;
-
-            const isEligibleForBatting = isDefender && !(hasDH && isPitcher);
-            const assignedPos = getAssignedKey(member);
+          {attendees.map((m) => {
+            const assignedPos = getAssignedKey(m);
+            const hasDH = !!(lineup.defense.DH && String(lineup.defense.DH).trim());
+            const isP = lineup.defense.P === m.Id;
+            const isEligible = Object.keys(lineup.defense).some(k => k !== "BENCH" && lineup.defense[k] === m.Id) && !(hasDH && isP);
 
             return (
-              <View
-                key={member.Id || member.id || member.User_ID}
-                style={styles.memberCard}
-              >
+              <View key={m.Id} style={styles.memberCard}>
                 <Text style={styles.memberName}>
-                  {member.Name || member.name || member.User_ID}
-                  {activeTab === "defense" && (
-                    <Text
-                      style={{ color: "rgba(46, 50, 48, 0.5)", fontSize: 12 }}
-                    >
-                      {" "}
-                      ({member.Primary_Position || "미정"})
-                    </Text>
-                  )}
-                  <Text style={{ color: "#705c30", fontSize: 13 }}>
-                    {" "}
-                    [{assignedPos || "미배정"}]
-                  </Text>
+                  {m.Name}
+                  {activeTab === "defense" && <Text style={{ color: "rgba(46, 50, 48, 0.5)", fontSize: 12 }}> ({m.Primary_Position || "미정"})</Text>}
+                  <Text style={{ color: "#705c30", fontSize: 13 }}> [{assignedPos || "미배정"}]</Text>
                 </Text>
                 <View style={styles.posButtons}>
                   {activeTab === "defense" ? (
                     POSITIONS.map((pos) => {
-                      const isActive =
-                        pos === "BENCH"
-                          ? (lineup.defense.BENCH || []).some(
-                              (bid) => bid?.toString() === sId,
-                            )
-                          : lineup.defense[pos]?.toString() === sId;
+                      const isActive = pos === "BENCH" ? (lineup.defense.BENCH || []).includes(m.Id) : lineup.defense[pos] === m.Id;
                       return (
-                        <TouchableOpacity
-                          key={pos}
-                          onPress={() => assignMember(pos, member)}
-                          style={[
-                            styles.posBtn,
-                            isActive && styles.posBtnActive,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.posBtnText,
-                              isActive && styles.posBtnTextActive,
-                            ]}
-                          >
-                            {pos}
-                          </Text>
+                        <TouchableOpacity key={pos} onPress={() => assignMember(pos, m)} style={[styles.posBtn, isActive && styles.posBtnActive]}>
+                          <Text style={[styles.posBtnText, isActive && styles.posBtnTextActive]}>{pos}</Text>
                         </TouchableOpacity>
                       );
                     })
                   ) : (
                     <TouchableOpacity
-                      disabled={!isEligibleForBatting}
-                      onPress={() => assignMember(null, member)}
+                      disabled={!isEligible}
+                      onPress={() => assignMember(null, m)}
                       style={[
                         styles.posBtn,
-                        lineup.batting.some((id) => id?.toString() === sId) &&
-                          styles.posBtnActive,
-                        !isEligibleForBatting && {
-                          backgroundColor: "rgba(46, 50, 48, 0.05)",
-                          opacity: 0.5,
-                        },
-                        { paddingHorizontal: 20 },
+                        lineup.batting.includes(m.Id) && styles.posBtnActive, 
+                        !isEligible && { backgroundColor: "rgba(46, 50, 48, 0.05)", opacity: 0.5 }
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.posBtnText,
-                          lineup.batting.some((id) => id?.toString() === sId) &&
-                            styles.posBtnTextActive,
-                          !isEligibleForBatting && {
-                            color: "rgba(46, 50, 48, 0.3)",
-                          },
-                        ]}
-                      >
-                        {isEligibleForBatting
-                          ? "배정"
-                          : hasDH && isPitcher
-                            ? "DH사용됨"
-                            : "수비필요"}
+                      <Text style={[styles.posBtnText, lineup.batting.includes(m.Id) && styles.posBtnTextActive, !isEligible && { color: "rgba(46, 50, 48, 0.3)" }]}>
+                        {isEligible ? "배정" : (hasDH && isP ? "DH사용됨" : "수비필요")}
                       </Text>
                     </TouchableOpacity>
                   )}

@@ -256,6 +256,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(74, 124, 89, 0.1)",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   memberAvatarText: {
     color: "#4a7c59",
