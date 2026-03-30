@@ -14,6 +14,7 @@ import { API_BASE_URL } from "../constants/commonConstants";
 import {
   SCHEDULE_API_ENDPOINT,
   TEAM_API_ENDPOINT,
+  GAME_API_ENDPOINT,
 } from "../constants/scheduleConstants";
 import { styles } from "./leagueGameScheduleScreen.styles";
 import CommonHeader from "../components/CommonHeader";
@@ -24,7 +25,6 @@ const STADIUM_NAME = "수원 KT 위즈파크";
 const STADIUM_IMAGE_URI =
   "https://i.namu.wiki/i/s5el6DSDQjJetZbb2WxKe-H8PtDQ6dfeZuMSKUtyro-XpSYN-lY2F-baCLWr_IqPi6nTTNQpa5zjc18gyN5xX01x2hKrAn65EKGflZmbyF1C5-hjFB2Te6mPOGzUeimD3AwO-qVSNz_C8nQSgaaozA.webp";
 const MESSAGE_NO_NEAREST = "표시할 예정 경기가 없습니다.";
-const MESSAGE_UPCOMING = "남은 경기 일정";
 const MESSAGE_LOAD_ERROR = "리그 경기 일정을 불러오지 못했습니다.";
 const MESSAGE_NO_UPCOMING = "예정된 경기 일정이 없습니다.";
 const MESSAGE_LOAD_MORE = "더 보기";
@@ -129,27 +129,71 @@ const toYYYYMMDD = (date) => {
   return `${year}${month}${day}`;
 };
 
-const normalizeSchedule = (row, teamNameMap) => {
-  const matchDate = toDate(
-    pick(row, ["date", "match_date", "game_date", "scheduled_at"]),
-  );
+/**
+ * 플레이별 경기 데이터(gameRows)로부터 경기별/팀별 총 득점을 합산합니다.
+ * 리턴 구조: { "YYYYMMDD": { "teamId": totalScore } }
+ */
+const aggregateScores = (gameRows) => {
+  const map = {};
+  if (!Array.isArray(gameRows)) return map;
+
+  gameRows.forEach((row) => {
+    const d = pick(row, ["date", "match_date", "game_date"]);
+    if (!d) return;
+
+    const dateKey = String(d);
+    const battingTeam = String(pick(row, ["batting_team"]) || "");
+    const runs = parseInt(pick(row, ["runs_scored_on_play"]) || "0", 10);
+
+    if (dateKey && battingTeam) {
+      if (!map[dateKey]) map[dateKey] = {};
+      if (!map[dateKey][battingTeam]) map[dateKey][battingTeam] = 0;
+      map[dateKey][battingTeam] += runs;
+    }
+  });
+
+  return map;
+};
+
+const normalizeSchedule = (row, teamNameMap, scoreMap = {}) => {
+  const dateValue = pick(row, [
+    "date",
+    "match_date",
+    "game_date",
+    "scheduled_at",
+  ]);
+  const matchDate = toDate(dateValue);
 
   if (!matchDate) {
     return null;
   }
 
+  const dateKey = String(dateValue || "");
   const home = pick(row, ["home", "home_team"]);
   const away = pick(row, ["away", "away_team"]);
-  const homeScore = pick(row, ["home_score", "score_home", "HomeScore", "HOME_SCORE"]);
-  const awayScore = pick(row, ["away_score", "score_away", "AwayScore", "AWAY_SCORE"]);
+
+  // 해당 날짜에 Game 테이블의 플레이 기록이 아예 없는지 확인
+  const isScoreValid = !!scoreMap[dateKey];
+
+  // scoreMap이 존재하는 경우 일치하는 날짜와 팀 ID의 합산 점수를 사용
+  const homeScore =
+    scoreMap[dateKey]?.[String(home)] ??
+    pick(row, ["home_score", "score_home", "HomeScore", "HOME_SCORE"]);
+
+  const awayScore =
+    scoreMap[dateKey]?.[String(away)] ??
+    pick(row, ["away_score", "score_away", "AwayScore", "AWAY_SCORE"]);
 
   return {
     id: String(pick(row, ["id", "Id"]) || `${home}-${away}-${matchDate}`),
     home: getTeamName(teamNameMap, home, "HOME"),
     away: getTeamName(teamNameMap, away, "AWAY"),
-    homeScore: homeScore !== null ? String(homeScore) : null,
-    awayScore: awayScore !== null ? String(awayScore) : null,
+    homeScore:
+      homeScore !== null && homeScore !== undefined ? String(homeScore) : "0",
+    awayScore:
+      awayScore !== null && awayScore !== undefined ? String(awayScore) : "0",
     matchDate,
+    isScoreValid,
   };
 };
 
@@ -174,9 +218,10 @@ const LeagueGameScheduleScreen = () => {
           setVisibleCount(INITIAL_VISIBLE_COUNT);
         }
 
-        const [scheduleRes, teamRes] = await Promise.all([
+        const [scheduleRes, teamRes, gameRes] = await Promise.all([
           fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`),
           fetch(`${API_BASE_URL}${TEAM_API_ENDPOINT}`),
+          fetch(`${API_BASE_URL}${GAME_API_ENDPOINT}`),
         ]);
 
         if (!scheduleRes.ok) {
@@ -187,16 +232,25 @@ const LeagueGameScheduleScreen = () => {
           throw new Error(`team API 오류: ${teamRes.status}`);
         }
 
-        const [scheduleRows, teamRows] = await Promise.all([
+        if (!gameRes.ok) {
+          console.warn(
+            "game API를 불러오는 데 실패했습니다. 점수가 0으로 표시될 수 있습니다.",
+          );
+        }
+
+        const [scheduleRows, teamRows, gameRows] = await Promise.all([
           scheduleRes.json(),
           teamRes.json(),
+          gameRes.ok ? gameRes.json() : [],
         ]);
 
         const teamNameMap = buildTeamNameMap(teamRows);
+        const scoreMap = aggregateScores(gameRows);
+
         const normalizedGames = (
           Array.isArray(scheduleRows) ? scheduleRows : []
         )
-          .map((row) => normalizeSchedule(row, teamNameMap))
+          .map((row) => normalizeSchedule(row, teamNameMap, scoreMap))
           .filter(Boolean);
 
         if (isMounted) {
@@ -413,11 +467,11 @@ const LeagueGameScheduleScreen = () => {
                           <Text style={styles.scheduleDateText}>
                             {formatScheduleDate(game.matchDate)}
                           </Text>
-                          {activeTab === "PAST" &&
-                          game.homeScore !== null &&
-                          game.awayScore !== null ? (
+                          {activeTab === "PAST" ? (
                             <Text style={styles.scheduleScoreText}>
-                              {game.homeScore} : {game.awayScore}
+                              {game.isScoreValid
+                                ? `${game.homeScore} 대 ${game.awayScore}`
+                                : "Bench-Clearing"}
                             </Text>
                           ) : null}
                         </View>

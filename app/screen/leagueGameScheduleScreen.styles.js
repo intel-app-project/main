@@ -244,9 +244,9 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
   },
   scheduleScoreText: {
-    color: "#4a7c59",
+    color: "#7a736a", // 날짜 색상과 통일
     fontSize: 14,
-    fontWeight: "900",
+    fontWeight: "800",
   },
   loadMoreButton: {
     marginTop: 16,
