@@ -21,7 +21,8 @@ import { styles } from "./playerScheduleScreen.styles";
 import CommonHeader from "../components/CommonHeader";
 
 const PlayerScheduleScreen = ({ route }) => {
-  const { id } = route.params;
+  const { id: routeId } = route.params;
+  const id = Number(routeId);
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [memberId, setMemberId] = useState(null);
@@ -71,12 +72,7 @@ const PlayerScheduleScreen = ({ route }) => {
           const members = await allMemberRes.json();
           if (Array.isArray(members)) {
             for (let i = 0; i < members.length; i += 1) {
-              if (
-                String(members[i]?.Id ?? "").trim() ===
-                  String(id ?? "").trim() ||
-                String(members[i]?.User_ID ?? "").trim() ===
-                  String(id ?? "").trim()
-              ) {
+              if (members[i]?.Id === id) {
                 member = members[i];
                 break;
               }
@@ -99,9 +95,9 @@ const PlayerScheduleScreen = ({ route }) => {
 
         if (Array.isArray(teamRows)) {
           for (let i = 0; i < teamRows.length; i += 1) {
-            teamNameMap[String(teamRows[i]?.id ?? "")] = String(
-              teamRows[i]?.name ?? "",
-            );
+            if (teamRows[i]?.id) {
+              teamNameMap[teamRows[i].id] = teamRows[i].Name || "";
+            }
           }
         }
 
