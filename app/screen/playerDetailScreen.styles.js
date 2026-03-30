@@ -72,7 +72,7 @@ export const styles = StyleSheet.create({
   heroMainRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center", // Changed from flex-end for better avatar alignment
     marginBottom: 20,
   },
   heroNumber: {
@@ -114,6 +114,15 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     textAlign: "center",
+  },
+  heroAvatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(74, 124, 89, 0.05)",
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "rgba(74, 124, 89, 0.1)",
   },
   badgeContainer: {
     flexDirection: "row",
