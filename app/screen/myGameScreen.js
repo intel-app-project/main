@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
@@ -17,9 +11,17 @@ import { styles } from "./myGameScreen.styles";
 import CommonHeader from "../components/CommonHeader";
 
 const PositionSlot = ({ pos, name, highlight }) => (
-  <View style={[styles.slot, highlight ? styles.slotHighlight : null]}>
-    <Text style={styles.slotPos}>{pos}</Text>
-    <Text style={styles.slotName}>{name || "---"}</Text>
+  <View style={[styles.slotStadium, highlight && styles.slotHighlightStadium]}>
+    <Text style={styles.slotPosStadium}>{pos}</Text>
+    <Text
+      style={[
+        styles.slotNameStadium,
+        highlight && styles.slotNameHighlightStadium,
+      ]}
+      numberOfLines={1}
+    >
+      {name || "---"}
+    </Text>
   </View>
 );
 
@@ -53,9 +55,7 @@ const MyGameScreen = ({ navigation, route }) => {
         const teams = await teamRes.json();
         const members = await membersRes.json();
 
-        const member = members.find(
-          (me) => String(me?.Id).trim() === String(id).trim(),
-        );
+        const member = members.find((m) => m?.Id === id);
 
         const today = new Date();
         const startToday = new Date(
@@ -69,8 +69,7 @@ const MyGameScreen = ({ navigation, route }) => {
 
         const selected = schedules.find((row) => {
           if (row?.deleted_at) return false;
-          if (targetDate && String(row.date) === String(targetDate))
-            return true;
+          if (targetDate && row.date === targetDate) return true;
 
           const rowDate = parseDate(row.date);
           return (
@@ -80,12 +79,8 @@ const MyGameScreen = ({ navigation, route }) => {
           );
         });
 
-        const homeTeamName = teams.find(
-          (t) => String(t.id) === String(selected?.home),
-        )?.name;
-        const awayTeamName = teams.find(
-          (t) => String(t.id) === String(selected?.away),
-        )?.name;
+        const homeTeamName = teams.find((t) => t.id === selected?.home)?.name;
+        const awayTeamName = teams.find((t) => t.id === selected?.away)?.name;
 
         const matchDate = parseDate(selected?.date);
 
@@ -100,20 +95,16 @@ const MyGameScreen = ({ navigation, route }) => {
         let lineup = parseJson(selected?.lineup);
         if (!lineup.defense) lineup = { defense: lineup, batting: [] };
 
-        const isHome = String(selected?.home) === String(member?.Team);
+        const isHome = selected?.home === member?.Team;
         const currentMemberMap = parseJson(
           isHome ? selected?.home_member : selected?.away_member,
         );
 
         const roster = (members || [])
-          .filter(
-            (m) =>
-              String(m?.Team) === String(member?.Team) &&
-              currentMemberMap[String(m?.Id)],
-          )
-          .map((m, i) => ({
-            id: String(m?.Id),
-            name: String(m?.Name),
+          .filter((m) => m?.Team === member?.Team && currentMemberMap[m?.Id])
+          .map((m) => ({
+            id: m?.Id,
+            name: m?.Name,
             meta: `#${m.Num} · ${m?.Primary_Position ?? "미정"}`,
           }));
 
@@ -128,7 +119,8 @@ const MyGameScreen = ({ navigation, route }) => {
             homeTeamName: homeTeamName,
             awayTeamName: awayTeamName,
             stadiumName: "수원 KT 위즈파크",
-            isHome: String(selected?.home) === String(member?.Team),
+            isHome: selected?.home === member?.Team,
+            playerName: member.Name,
             defense: lineup.defense,
             bench: Array.isArray(lineup.defense?.BENCH)
               ? lineup.defense.BENCH
@@ -205,47 +197,140 @@ const MyGameScreen = ({ navigation, route }) => {
                 </View>
               </View>
 
-              <View style={styles.card}>
-                <Text style={styles.cardEyebrow}>Lineup</Text>
-                <Text style={styles.cardTitle}>Defensive Alignment</Text>
+              {/* 수비 라인업 영역 (teamInfo와 동일한 큰 틀 적용) */}
+              <View style={styles.fieldSection}>
                 <View style={styles.fieldCard}>
-                  <View style={styles.diamond}>
-                    <PositionSlot pos="CF" name={matchData.defense?.CF} />
-                    <View style={styles.fieldRow}>
-                      <PositionSlot pos="LF" name={matchData.defense?.LF} />
-                      <PositionSlot pos="RF" name={matchData.defense?.RF} />
-                    </View>
-                    <View style={styles.fieldRow}>
-                      <PositionSlot pos="SS" name={matchData.defense?.SS} />
-                      <PositionSlot pos="2B" name={matchData.defense?.["2B"]} />
-                    </View>
-                    <View style={styles.fieldRow}>
-                      <PositionSlot pos="3B" name={matchData.defense?.["3B"]} />
-                      <PositionSlot pos="1B" name={matchData.defense?.["1B"]} />
-                    </View>
-                    <PositionSlot
-                      pos="P"
-                      name={matchData.defense?.P}
-                      highlight
-                    />
-                    <PositionSlot pos="C" name={matchData.defense?.C} />
-                    <View style={styles.dhWrap}>
-                      <PositionSlot pos="DH" name={matchData.defense?.DH} />
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>라인업</Text>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>BEST 10</Text>
                     </View>
                   </View>
-                </View>
 
-                <View style={styles.sectionBlock}>
-                  <Text style={styles.sectionTitle}>Bench</Text>
-                  {matchData.bench.length > 0 ? (
-                    <Text style={styles.benchText}>
-                      {matchData.bench.join(", ")}
-                    </Text>
-                  ) : (
-                    <Text style={styles.emptyText}>
-                      등록된 벤치 선수가 없습니다.
-                    </Text>
-                  )}
+                  <View style={styles.fieldContainer}>
+                    {/* 야구장 배경 요소 유지 */}
+                    <View style={styles.stadiumFan} />
+                    <View style={styles.infieldDirtSemi} />
+                    <View style={styles.diamondBaseLines} />
+                    <View style={[styles.baseMarker, styles.base2B]} />
+                    <View style={[styles.baseMarker, styles.base1B]} />
+                    <View style={[styles.baseMarker, styles.base3B]} />
+                    <View style={styles.baseHome} />
+                    <View style={styles.pitcherMoundDirt}>
+                      <View style={styles.moundPlate} />
+                    </View>
+
+                    {/* 포지션 배치 (teamInfo와 동일한 위치 적용) */}
+                    <View style={styles.posP}>
+                      <PositionSlot
+                        pos="P"
+                        name={matchData.defense?.P}
+                        highlight={
+                          matchData.defense?.P === matchData.playerName
+                        }
+                      />
+                    </View>
+                    <View style={styles.posC}>
+                      <PositionSlot
+                        pos="C"
+                        name={matchData.defense?.C}
+                        highlight={
+                          matchData.defense?.C === matchData.playerName
+                        }
+                      />
+                    </View>
+                    <View style={styles.pos1B}>
+                      <PositionSlot
+                        pos="1B"
+                        name={matchData.defense?.["1B"]}
+                        highlight={
+                          matchData.defense?.["1B"] === matchData.playerName
+                        }
+                      />
+                    </View>
+                    <View style={styles.pos2B}>
+                      <PositionSlot
+                        pos="2B"
+                        name={matchData.defense?.["2B"]}
+                        highlight={
+                          matchData.defense?.["2B"] === matchData.playerName
+                        }
+                      />
+                    </View>
+                    <View style={styles.pos3B}>
+                      <PositionSlot
+                        pos="3B"
+                        name={matchData.defense?.["3B"]}
+                        highlight={
+                          matchData.defense?.["3B"] === matchData.playerName
+                        }
+                      />
+                    </View>
+                    <View style={styles.posSS}>
+                      <PositionSlot
+                        pos="SS"
+                        name={matchData.defense?.SS}
+                        highlight={
+                          matchData.defense?.SS === matchData.playerName
+                        }
+                      />
+                    </View>
+                    <View style={styles.posLF}>
+                      <PositionSlot
+                        pos="LF"
+                        name={matchData.defense?.LF}
+                        highlight={
+                          matchData.defense?.LF === matchData.playerName
+                        }
+                      />
+                    </View>
+                    <View style={styles.posCF}>
+                      <PositionSlot
+                        pos="CF"
+                        name={matchData.defense?.CF}
+                        highlight={
+                          matchData.defense?.CF === matchData.playerName
+                        }
+                      />
+                    </View>
+                    <View style={styles.posRF}>
+                      <PositionSlot
+                        pos="RF"
+                        name={matchData.defense?.RF}
+                        highlight={
+                          matchData.defense?.RF === matchData.playerName
+                        }
+                      />
+                    </View>
+                    <View style={styles.posDH}>
+                      <PositionSlot
+                        pos="DH"
+                        name={matchData.defense?.DH}
+                        highlight={
+                          matchData.defense?.DH === matchData.playerName
+                        }
+                      />
+                    </View>
+                  </View>
+
+                  {/* 벤치 섹션 */}
+                  <View
+                    style={[
+                      styles.sectionBlock,
+                      { width: "100%", marginTop: 20 },
+                    ]}
+                  >
+                    <Text style={styles.sectionTitle}>후보 선수</Text>
+                    {matchData.bench.length > 0 ? (
+                      <Text style={styles.benchText}>
+                        {matchData.bench.join(", ")}
+                      </Text>
+                    ) : (
+                      <Text style={styles.emptyText}>
+                        등록된 벤치 선수가 없습니다.
+                      </Text>
+                    )}
+                  </View>
                 </View>
               </View>
 
@@ -267,16 +352,8 @@ const MyGameScreen = ({ navigation, route }) => {
               </View>
             </>
           ) : null}
-
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>뒤로가기</Text>
-          </TouchableOpacity>
         </ScrollView>
       )}
-
     </SafeAreaView>
   );
 };
