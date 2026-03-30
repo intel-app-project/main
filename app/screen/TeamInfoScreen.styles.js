@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 100,
   },
-  
+
   // --- 최상단: 팀 기본 정보 섹션 ---
   teamInfoSection: {
     paddingHorizontal: 16,

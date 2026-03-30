@@ -11,10 +11,9 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import { INITIAL_LINEUP } from "../constants/scheduleConstants";
 import { parseJsonField } from "../utils/scheduleUtils";
-import { styles } from "./TeamInfoScreen.styles";
+import { styles } from "./teamInfoScreen.styles";
 import CommonHeader from "../components/CommonHeader";
 import CommonFooter from "../components/CommonFooter";
-
 
 const TeamInfoScreen = () => {
   const navigation = useNavigation();
@@ -33,28 +32,28 @@ const TeamInfoScreen = () => {
   const fetchTeamData = async () => {
     try {
       setLoading(true);
-      
+
       // 1. 모든 멤버 정보 가져오기
       const memRes = await fetch(`${API_BASE_URL}/api/member`);
       if (!memRes.ok) throw new Error("멤버 데이터를 불러오지 못했습니다.");
       const memData = await memRes.json();
-      
+
       // 2. 현재 로그인한 사용자의 팀(Team ID) 식별
       // route.params.id는 Id(숫자) 또는 User_ID(문자열)일 수 있음
-      const currentUser = memData.find(m => m.Id === id);
+      const currentUser = memData.find((m) => m.Id === id);
       const myTeamId = currentUser?.Team;
 
       // 3. 팀 정보 가져오기
       const teamRes = await fetch(`${API_BASE_URL}/api/team`);
       if (teamRes.ok) {
         const teamListData = await teamRes.json();
-        const currentTeam = teamListData.find(t => t.id === myTeamId);
+        const currentTeam = teamListData.find((t) => t.id === myTeamId);
         setTeamInfo(currentTeam);
       }
-      
+
       // 4. 소속 팀원만 필터링 (팀이 없는 경우는 제외)
-      const teamMembers = myTeamId 
-        ? memData.filter(m => m.Team === myTeamId)
+      const teamMembers = myTeamId
+        ? memData.filter((m) => m.Team === myTeamId)
         : [];
 
       // 정렬: 번호(Num) 순으로 정렬 (숫자 변환 필요)
@@ -72,10 +71,13 @@ const TeamInfoScreen = () => {
         if (lineupData && lineupData.length > 0) {
           const bestSched = lineupData[0];
           // 본인의 팀이 홈이면 home_lineup, 어웨이면 away_lineup 사용
-          const bestLineupRaw = (bestSched.home === myTeamId) 
-            ? bestSched.home_lineup 
-            : (bestSched.away === myTeamId ? bestSched.away_lineup : (bestSched.home_lineup || bestSched.away_lineup));
-            
+          const bestLineupRaw =
+            bestSched.home === myTeamId
+              ? bestSched.home_lineup
+              : bestSched.away === myTeamId
+                ? bestSched.away_lineup
+                : bestSched.home_lineup || bestSched.away_lineup;
+
           if (bestLineupRaw) {
             setBestLineup(parseJsonField(bestLineupRaw));
           }
@@ -92,11 +94,12 @@ const TeamInfoScreen = () => {
   const getNameById = (id) => {
     if (!id) return "---";
     // teamMembers뿐만 아니라 전체 멤버(또는 현재 불러온 members)에서 검색
-    const member = members.find(m => 
-      (m.Id && m.Id.toString() === id.toString()) || 
-      (m.User_ID && m.User_ID === id.toString())
+    const member = members.find(
+      (m) =>
+        (m.Id && m.Id.toString() === id.toString()) ||
+        (m.User_ID && m.User_ID === id.toString()),
     );
-    return member ? (member.Name || member.name) : id;
+    return member ? member.Name || member.name : id;
   };
 
   const PositionSlot = ({ pos, idValue }) => (
@@ -114,7 +117,9 @@ const TeamInfoScreen = () => {
         <CommonHeader title="팀 정보" />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4a7c59" />
-          <Text style={{ marginTop: 12, color: "#4a7c59" }}>팀 정보를 불러오는 중...</Text>
+          <Text style={{ marginTop: 12, color: "#4a7c59" }}>
+            팀 정보를 불러오는 중...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -123,8 +128,10 @@ const TeamInfoScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <CommonHeader title="TeamInfoScreen" />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* 최상단: 팀 기본 정보 섹션 */}
         <View style={styles.teamInfoSection}>
           <View style={styles.teamInfoCard}>
@@ -167,16 +174,36 @@ const TeamInfoScreen = () => {
               </View>
 
               {/* 포지션 배치 (ID 기반 렌더링) */}
-              <View style={styles.posP}><PositionSlot pos="P" idValue={bestLineup.defense.P} /></View>
-              <View style={styles.posC}><PositionSlot pos="C" idValue={bestLineup.defense.C} /></View>
-              <View style={styles.pos1B}><PositionSlot pos="1B" idValue={bestLineup.defense["1B"]} /></View>
-              <View style={styles.pos2B}><PositionSlot pos="2B" idValue={bestLineup.defense["2B"]} /></View>
-              <View style={styles.pos3B}><PositionSlot pos="3B" idValue={bestLineup.defense["3B"]} /></View>
-              <View style={styles.posSS}><PositionSlot pos="SS" idValue={bestLineup.defense.SS} /></View>
-              <View style={styles.posLF}><PositionSlot pos="LF" idValue={bestLineup.defense.LF} /></View>
-              <View style={styles.posCF}><PositionSlot pos="CF" idValue={bestLineup.defense.CF} /></View>
-              <View style={styles.posRF}><PositionSlot pos="RF" idValue={bestLineup.defense.RF} /></View>
-              <View style={styles.posDH}><PositionSlot pos="DH" idValue={bestLineup.defense.DH} /></View>
+              <View style={styles.posP}>
+                <PositionSlot pos="P" idValue={bestLineup.defense.P} />
+              </View>
+              <View style={styles.posC}>
+                <PositionSlot pos="C" idValue={bestLineup.defense.C} />
+              </View>
+              <View style={styles.pos1B}>
+                <PositionSlot pos="1B" idValue={bestLineup.defense["1B"]} />
+              </View>
+              <View style={styles.pos2B}>
+                <PositionSlot pos="2B" idValue={bestLineup.defense["2B"]} />
+              </View>
+              <View style={styles.pos3B}>
+                <PositionSlot pos="3B" idValue={bestLineup.defense["3B"]} />
+              </View>
+              <View style={styles.posSS}>
+                <PositionSlot pos="SS" idValue={bestLineup.defense.SS} />
+              </View>
+              <View style={styles.posLF}>
+                <PositionSlot pos="LF" idValue={bestLineup.defense.LF} />
+              </View>
+              <View style={styles.posCF}>
+                <PositionSlot pos="CF" idValue={bestLineup.defense.CF} />
+              </View>
+              <View style={styles.posRF}>
+                <PositionSlot pos="RF" idValue={bestLineup.defense.RF} />
+              </View>
+              <View style={styles.posDH}>
+                <PositionSlot pos="DH" idValue={bestLineup.defense.DH} />
+              </View>
             </View>
           </View>
         </View>
@@ -186,15 +213,22 @@ const TeamInfoScreen = () => {
           <View style={styles.listCard}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>전체 멤버</Text>
-              <Text style={{ fontSize: 13, color: "rgba(46, 50, 48, 0.4)" }}>{members.length}명 대기 중</Text>
+              <Text style={{ fontSize: 13, color: "rgba(46, 50, 48, 0.4)" }}>
+                {members.length}명 대기 중
+              </Text>
             </View>
 
             {members.length > 0 ? (
               members.map((member) => (
-                <TouchableOpacity 
-                  key={member.Id || member.id || member.User_ID} 
+                <TouchableOpacity
+                  key={member.Id || member.id || member.User_ID}
                   style={styles.memberItem}
-                  onPress={() => navigation.navigate("PlayerDetail", { id: member.Id || member.User_ID, isDirector })}
+                  onPress={() =>
+                    navigation.navigate("PlayerDetail", {
+                      id: member.Id || member.User_ID,
+                      isDirector,
+                    })
+                  }
                 >
                   <View style={styles.memberInfo}>
                     <View style={styles.memberAvatar}>
@@ -203,8 +237,12 @@ const TeamInfoScreen = () => {
                       </Text>
                     </View>
                     <View>
-                      <Text style={styles.memberName}>{member.Name || member.name}</Text>
-                      <Text style={styles.memberPos}>{member.Primary_Position || "미지정"}</Text>
+                      <Text style={styles.memberName}>
+                        {member.Name || member.name}
+                      </Text>
+                      <Text style={styles.memberPos}>
+                        {member.Primary_Position || "미지정"}
+                      </Text>
                     </View>
                   </View>
                   <Text style={styles.memberNum}>#{member.Num || "00"}</Text>
