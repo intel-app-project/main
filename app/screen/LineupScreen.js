@@ -19,10 +19,8 @@ import { styles } from "./lineupScreen.styles";
 import CommonHeader from "../components/CommonHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const LineupScreen = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { targetDate = "20260909", id } = route.params || {}; // id: 사용자 ID (Id 또는 User_ID)
+const LineupScreen = ({route}) => {
+  const { targetDate, id } = route.params; // id: 사용자 ID (Id 또는 User_ID)
 
   const [schedule, setSchedule] = useState(null); // 해당 날짜의 경기 일정 데이터
   const [members, setMembers] = useState([]); // 전체 팀원 목록

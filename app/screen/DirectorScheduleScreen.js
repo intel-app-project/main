@@ -11,7 +11,7 @@ const DirectorScheduleScreen = ({navigation, route}) => {
     const [schedules, setSchedules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [teamId, setTeamId] = useState(null);
-    const directorId = route.params?.id; // 감독 사용자 ID
+    const directorId = route.params.id; // 감독 사용자 ID
 
     useEffect(() => {
         fetchTeamInfo();
@@ -19,12 +19,7 @@ const DirectorScheduleScreen = ({navigation, route}) => {
 
     const fetchTeamInfo = async () => {
         try {
-            const { id } = route.params || {};
-            if (!id) {
-                console.error("No ID provided in route params");
-                setLoading(false);
-                return;
-            }
+        const { id } = route.params;
 
             const { data, error } = await supabase
                 .from("member")
@@ -94,7 +89,7 @@ const DirectorScheduleScreen = ({navigation, route}) => {
                     {schedules.map((item) => {
                         const teamSchedule = item.home === teamId || item.away === teamId;
                         return (
-                            <View key={item.id} style={styles.card}>
+                            <View key={item.date} style={styles.card}>
                                 {/* 경기 정보 영역 */}
                                 <View style={styles.cardTop}>
                                     <View style={styles.cardLeft}>

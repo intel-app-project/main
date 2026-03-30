@@ -69,16 +69,12 @@ const ProfileStack = ({ route }) => {
 };
 
 const MainTabNavigator = ({ route }) => {
-  const { id } = route.params || {};
+  const { id } = route.params;
   const [position, setPosition] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMemberPosition = async () => {
-      if (!id) {
-        setLoading(false);
-        return;
-      }
       try {
         console.log("[MainTabNavigator] Fetching position for ID:", id);
         const { data, error } = await supabase
@@ -88,7 +84,6 @@ const MainTabNavigator = ({ route }) => {
           .single();
 
         if (error) {
-          // 'Id'가 실패할 경우 'ID'로 시도 (일부 환경 차이 대비)
           const { data: data2, error: error2 } = await supabase
             .from("member")
             .select("Primary_Position")
@@ -122,9 +117,8 @@ const MainTabNavigator = ({ route }) => {
     );
   }
 
-  const isDirector = position?.trim() === "감독";
-
-  const isManager = position?.trim() === "기록원";
+  const isDirector = position === "감독";
+  const isManager = position === "기록원";
 
   return (
     <Tab.Navigator

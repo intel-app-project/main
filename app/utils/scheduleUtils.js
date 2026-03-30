@@ -225,7 +225,7 @@ export const getAttendanceOption = (status) =>
   ATTENDANCE_OPTIONS[1];
 
 export const getGameKey = (game) =>
-  `${game.scheduleId ?? game.scheduleDate}-${game.teamName}-${game.opponent}`;
+  `${game.scheduleDate}-${game.teamName}-${game.opponent}`;
 
 export const getAttendanceBadgePalette = (status) => {
   const option = getAttendanceOption(status);
@@ -324,9 +324,11 @@ export const normalizeSchedule = (
         : ["home_name", "opponent", "opponent_team", "home_team"],
     ) || resolveTeamName(teamNameMap, opponentTeamId, "상대팀 미정");
 
+  const scheduleDateValue = pick(row, ["date"]);
+  const scheduleDate = String(scheduleDateValue || "");
+
   return {
-    scheduleId: pick(row, ["id", "Id"]),
-    scheduleDate: String(pick(row, ["date", "game_date", "match_date"]) || ""),
+    scheduleDate: scheduleDate,
     date,
     opponent,
     teamName,
@@ -341,7 +343,6 @@ export const normalizeSchedule = (
 };
 
 export const summarizeUpcomingGame = (item) => ({
-  scheduleId: item.scheduleId,
   scheduleDate: item.scheduleDate,
   dateText: item.dateText,
   teamName: item.teamName,
@@ -398,9 +399,9 @@ export const resolveMember = async (memberRes, normalizedUserId) => {
   return findMemberByUserId(members, normalizedUserId) || null;
 };
 
-export const deleteSchedule = async (id) => {
+export const deleteSchedule = async (date) => {
   const response = await fetch(
-    `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${id}`,
+    `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${date}`,
     {
       method: "DELETE",
     },
@@ -411,12 +412,12 @@ export const deleteSchedule = async (id) => {
   return response.json();
 };
 
-export const saveSchedule = async (data, editingId) => {
-  const url = editingId
-    ? `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${editingId}`
+export const saveSchedule = async (data, editingDate) => {
+  const url = editingDate
+    ? `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}/${editingDate}`
     : `${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`;
 
-  const method = editingId ? "PUT" : "POST";
+  const method = editingDate ? "PUT" : "POST";
 
   const response = await fetch(url, {
     method: method,
@@ -433,8 +434,8 @@ export const saveSchedule = async (data, editingId) => {
 };
 
 export const resetScheduleForm = (setters) => {
-  const { setEditingId, setDate, setHome, setAway } = setters;
-  setEditingId(null);
+  const { setEditingDate, setDate, setHome, setAway } = setters;
+  setEditingDate(null);
   setDate("");
   setHome("");
   setAway("");

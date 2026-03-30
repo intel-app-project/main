@@ -69,8 +69,7 @@ def parse_json_object(value):
 
 
 class AttendanceUpdatePayload(BaseModel):
-    schedule_id: int | None = None
-    schedule_date: str | None = None
+    schedule_date: str
     member_id: int
     side: str
     status: str
@@ -91,11 +90,6 @@ class ScheduleLineupUpdate(BaseModel):
         # To handle '1B', '2B', etc. from JSON
         populate_by_name = True
         alias_generator = lambda s: s.replace('one', '1').replace('two', '2').replace('three', '3')
-
-
-@app.get("/api/hello")
-def read_hello():
-    return {"message": "Supabase connection is ready."}
 
 # 새로운 스케줄 등록을 위한 Pydantic 모델
 class ScheduleCreate(BaseModel):
@@ -137,18 +131,18 @@ def get_schedules_by_team(team_id: int):
     )
     return response.data
 
-@app.delete("/api/schedule/{schedule_id}")
-def delete_schedule(schedule_id: int):
+@app.delete("/api/schedule/{date}")
+def delete_schedule(date: str):
     try:
         # 영구 삭제 대신 deleted_at에 현재 시간 기록
         now = datetime.now().isoformat()
-        response = supabase.table("schedule").update({"deleted_at": now}).eq("id", schedule_id).execute()
-        return {"message": "일정이 논리적으로 삭제되었습니다.", "data": response.data}
+        response = supabase.table("schedule").update({"deleted_at": now}).eq("date", date).execute()
+        return {"message": "일정이 삭제 표기되었습니다.", "data": response.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.put("/api/schedule/{schedule_id}")
-def update_schedule(schedule_id: int, schedule: ScheduleCreate):
+@app.put("/api/schedule/{date}")
+def update_schedule(date: str, schedule: ScheduleCreate):
     try:
         now = datetime.now().isoformat()
         data = {
@@ -157,7 +151,7 @@ def update_schedule(schedule_id: int, schedule: ScheduleCreate):
             "away": schedule.away,
             "updated_at": now
         }
-        response = supabase.table("schedule").update(data).eq("id", schedule_id).execute()
+        response = supabase.table("schedule").update(data).eq("date", date).execute()
         return {"message": "일정이 성공적으로 수정되었습니다.", "data": response.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -230,13 +224,7 @@ def update_schedule_attendance(payload: AttendanceUpdatePayload):
             detail="status must be one of: attending, pending, absent",
         )
 
-    query = supabase.table("schedule").select("*")
-    if payload.schedule_id is not None:
-        query = query.eq("id", payload.schedule_id)
-    elif payload.schedule_date:
-        query = query.eq("date", payload.schedule_date)
-    else:
-        raise HTTPException(status_code=400, detail="schedule_id or schedule_date is required")
+    query = supabase.table("schedule").select("*").eq("date", payload.schedule_date)
 
     response = query.limit(1).execute()
     schedule = response.data[0] if response.data else None
@@ -255,17 +243,11 @@ def update_schedule_attendance(payload: AttendanceUpdatePayload):
     else:
         member_map.pop(member_id_key, None)
 
-    update_query = supabase.table("schedule").update({member_column: member_map})
-    if payload.schedule_id is not None:
-        update_query = update_query.eq("id", payload.schedule_id)
-    else:
-        update_query = update_query.eq("date", payload.schedule_date)
-
+    update_query = supabase.table("schedule").update({member_column: member_map}).eq("date", payload.schedule_date)
     update_response = update_query.execute()
     updated_schedule = update_response.data[0] if update_response.data else None
 
     return {
-        "schedule_id": payload.schedule_id,
         "schedule_date": payload.schedule_date,
         "member_id": payload.member_id,
         "side": normalized_side,

@@ -25,8 +25,8 @@ const PositionSlot = ({ pos, name, highlight }) => (
   </View>
 );
 
-const MyGameScreen = ({ navigation, route }) => {
-  const { id, scheduleId = null, targetDate = null } = route.params || {};
+const MyGameScreen = ({ route }) => {
+  const { id, targetDate = null } = route.params;
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [matchData, setMatchData] = useState(null);
@@ -144,7 +144,7 @@ const MyGameScreen = ({ navigation, route }) => {
     return () => {
       mounted = false;
     };
-  }, [id, scheduleId, targetDate]);
+  }, [id, targetDate]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

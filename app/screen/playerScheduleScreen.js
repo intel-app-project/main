@@ -21,7 +21,7 @@ import { styles } from "./playerScheduleScreen.styles";
 import CommonHeader from "../components/CommonHeader";
 
 const PlayerScheduleScreen = ({ route }) => {
-  const { id } = route.params || {};
+  const { id } = route.params;
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [memberId, setMemberId] = useState(null);
@@ -170,8 +170,7 @@ const PlayerScheduleScreen = ({ route }) => {
                 : null;
 
             nextList.push({
-              key: `${row?.id ?? row?.date}-${row?.home}-${row?.away}`,
-              scheduleId: row?.id ?? null,
+              key: `${row?.date}-${row?.home}-${row?.away}`,
               scheduleDate: row?.date ?? "",
               isHome,
               attendanceSide: side,
@@ -309,7 +308,6 @@ const PlayerScheduleScreen = ({ route }) => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          schedule_id: item.scheduleId,
           schedule_date: item.scheduleDate,
           member_id: memberId,
           side: item.attendanceSide,
