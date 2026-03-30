@@ -18,10 +18,13 @@ const CommonFooter = ({ state, navigation, Id, userPosition }) => {
         const { data, error } = await supabase
           .from("member")
           .select("Primary_Position")
-          .eq("Id", Id) 
+          .eq("Id", Id)
           .single();
 
-        setPosition(data.Primary_Position);
+        if (error) throw error;
+        if (data) {
+          setPosition(data.Primary_Position);
+        }
       } catch (err) {
         console.error("Error fetching position in Footer:", err);
       } finally {
