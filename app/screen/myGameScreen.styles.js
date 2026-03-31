@@ -356,6 +356,16 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 3,
   },
+  slotAvatarContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(74, 124, 89, 0.05)",
+    overflow: "hidden",
+    marginVertical: 2,
+    borderWidth: 1,
+    borderColor: "rgba(74, 124, 89, 0.1)",
+  },
   slotNameStadium: {
     fontSize: 10,
     fontWeight: "800",
@@ -457,6 +467,15 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  playerAvatarContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(74, 124, 89, 0.05)",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(74, 124, 89, 0.1)",
   },
   playerMeta: {
     color: "#8f887e",
