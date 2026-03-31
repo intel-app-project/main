@@ -660,14 +660,8 @@ const LeagueGameScheduleScreen = () => {
                               styles.scheduleItemHighlight,
                           ]}
                         >
-                          <View style={styles.scheduleItemRow}>
-                            <View style={styles.scheduleIndexBadge}>
-                              <Text style={styles.scheduleIndexText}>
-                                {String(index + 1).padStart(2, "0")}
-                              </Text>
-                            </View>
-
-                            <View style={styles.scheduleMain}>
+                            <View style={styles.scheduleItemRow}>
+                              <View style={styles.scheduleMain}>
                               <Text
                                 style={[
                                   styles.scheduleMatchText,

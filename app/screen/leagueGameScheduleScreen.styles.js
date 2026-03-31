@@ -227,19 +227,6 @@ export const styles = StyleSheet.create({
     elevation: 5,
     borderWidth: 1.8,
   },
-  scheduleIndexBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#dfe8d7",
-  },
-  scheduleIndexText: {
-    color: "#4a7c59",
-    fontSize: 13,
-    fontWeight: "800",
-  },
   scheduleMain: {
     flex: 1,
     gap: 4,

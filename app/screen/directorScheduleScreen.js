@@ -435,7 +435,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
       Alert.alert(
         "Review Message",
         error.message ||
-          "?????얠뺏??븍툙????耀붾굝????????????????ш끽維뽳쭩????? ?耀붾굝????鶯????獒????????",
+          "\uB9AC\uBDF0 \uBA54\uC2DC\uC9C0\uB97C \uC0DD\uC131\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
       );
     } finally {
       setReviewSendingKey("");
@@ -560,7 +560,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <CommonHeader title="leagueScheduleScreen" />
+      <CommonHeader title="directorScheduleScreen" />
 
       <View style={styles.body}>
         <View style={styles.calendarSection}>
@@ -588,7 +588,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
                   )
                 }
               >
-                <Text style={styles.todayButtonText}>Today</Text>
+                <Text style={styles.todayButtonText}>오늘</Text>
               </TouchableOpacity>
             </View>
 
@@ -678,7 +678,9 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
             <View style={styles.sectionHeaderRow}>
               <View>
                 <Text style={styles.sectionEyebrow}>Match schedule</Text>
-                <Text style={styles.sectionTitle}>경기 일정</Text>
+                <Text style={styles.sectionTitle}>
+                  {"\uACBD\uAE30 \uC77C\uC815"}
+                </Text>
               </View>
               {!loading && filteredGames.length > 0 ? (
                 <View style={styles.countBadge}>
@@ -755,17 +757,26 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
                         >
                           <View style={styles.scheduleItemRow}>
                             <View style={styles.scheduleMain}>
-                              <Text
-                                style={[
-                                  styles.scheduleMatchText,
-                                  activeTab === "FUTURE" &&
-                                    index === 0 &&
-                                    styles.scheduleMatchTextHighlight,
-                                ]}
-                                numberOfLines={1}
-                              >
-                                {game.home} vs {game.away}
-                              </Text>
+                              <View style={styles.scheduleDateRow}>
+                                <Text
+                                  style={[
+                                    styles.scheduleMatchText,
+                                    activeTab === "FUTURE" &&
+                                      index === 0 &&
+                                      styles.scheduleMatchTextHighlight,
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {game.home} vs {game.away}
+                                </Text>
+                                {activeTab === "PAST" ? (
+                                  <Text style={styles.scheduleScoreText}>
+                                    {game.isScoreValid
+                                      ? `${game.homeScore} : ${game.awayScore}`
+                                      : "Canceled"}
+                                  </Text>
+                                ) : null}
+                              </View>
 
                               <View style={styles.scheduleDateRow}>
                                 <Text style={styles.scheduleDateText}>
@@ -784,7 +795,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
                                     }
                                   >
                                     <Text style={lineupButtonTextStyle}>
-                                      ??깆뵥???닌딄쉐
+                                      {"\uB77C\uC778\uC5C5 \uAD6C\uC131"}
                                     </Text>
                                   </TouchableOpacity>
                                 ) : null}
@@ -802,13 +813,6 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
                                         : "review message"}
                                     </Text>
                                   </TouchableOpacity>
-                                ) : null}
-                                {activeTab === "PAST" ? (
-                                  <Text style={styles.scheduleScoreText}>
-                                    {game.isScoreValid
-                                      ? `${game.homeScore} : ${game.awayScore}`
-                                      : "Canceled"}
-                                  </Text>
                                 ) : null}
                               </View>
                             </View>
