@@ -18,7 +18,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from supabase import Client, create_client
-from review_logic import generate_all_reviews, generate_player_review
+from review_logic import (
+    generate_all_reviews,
+    generate_player_review,
+    generate_team_reviews_for_date,
+)
 
 load_dotenv()
 
@@ -74,6 +78,11 @@ class AttendanceUpdatePayload(BaseModel):
     member_id: int
     side: str
     status: str
+
+
+class ReviewGenerateByDatePayload(BaseModel):
+    schedule_date: str
+    team_id: int
 
 
 class ScheduleLineupUpdate(BaseModel):
@@ -303,6 +312,18 @@ def get_player_review(member_id: int):
 def generate_all_player_reviews():
     try:
         return generate_all_reviews(supabase)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/api/review/generate-by-date")
+def generate_reviews_by_date(payload: ReviewGenerateByDatePayload):
+    try:
+        return generate_team_reviews_for_date(
+            supabase,
+            payload.team_id,
+            payload.schedule_date,
+        )
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
