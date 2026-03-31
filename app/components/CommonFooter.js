@@ -1,4 +1,10 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useState } from "react";
@@ -10,8 +16,8 @@ const CommonFooter = ({ state, navigation, Id, userPosition }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-      setPosition(userPosition);
-      setLoading(false);
+    setPosition(userPosition);
+    setLoading(false);
 
     const fetchMemberPosition = async () => {
       try {
@@ -37,32 +43,78 @@ const CommonFooter = ({ state, navigation, Id, userPosition }) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { height: 60 + insets.bottom, justifyContent: 'center' }]}>
+      <View
+        style={[
+          styles.container,
+          { height: 60 + insets.bottom, justifyContent: "center" },
+        ]}
+      >
         <ActivityIndicator size="small" color="#4a7c59" />
       </View>
     );
   }
 
-  const tabs = position === "감독" ?
-      [
-        { id: "MyGame", label: "팀일정", icon: "calendar-month", screen: "MyGame" },
-        { id: "TeamInfo", label: "팀정보", icon: "account-group", screen: "TeamInfo" },
-        { id: "DirectorSchedule", label: "리그일정", icon: "format-list-bulleted", screen: "DirectorSchedule" },
-        { id: "PlayerDetail", label: "유저정보", icon: "account", screen: "PlayerDetail" },
-      ]
-    : [
-        { id: "MyGame", label: "내경기", icon: "baseball", screen: "MyGame" },
-        { id: "PlayerSchedule", label: "일정관리", icon: "calendar-month", screen: "PlayerSchedule" },
-        { id: "TeamInfo", label: "팀정보", icon: "account-group", screen: "TeamInfo" },
-        { id: "LeagueGameSchedule", label: "리그일정", icon: "format-list-bulleted", screen: "LeagueGameSchedule" },
-        { id: "PlayerDetail", label: "내정보", icon: "account", screen: "PlayerDetail" },
-      ];
+  const tabs =
+    position === "감독"
+      ? [
+          {
+            id: "MyGame",
+            label: "팀일정",
+            icon: "calendar-month",
+            screen: "MyGame",
+          },
+          {
+            id: "TeamInfo",
+            label: "팀정보",
+            icon: "account-group",
+            screen: "TeamInfo",
+          },
+          {
+            id: "DirectorSchedule",
+            label: "리그일정",
+            icon: "format-list-bulleted",
+            screen: "DirectorSchedule",
+          },
+          {
+            id: "PlayerDetail",
+            label: "유저정보",
+            icon: "account",
+            screen: "PlayerDetail",
+          },
+        ]
+      : [
+          { id: "MyGame", label: "내경기", icon: "baseball", screen: "MyGame" },
+          {
+            id: "PlayerSchedule",
+            label: "일정관리",
+            icon: "calendar-month",
+            screen: "PlayerSchedule",
+          },
+          {
+            id: "TeamInfo",
+            label: "팀정보",
+            icon: "account-group",
+            screen: "TeamInfo",
+          },
+          {
+            id: "LeagueGameSchedule",
+            label: "리그일정",
+            icon: "format-list-bulleted",
+            screen: "LeagueGameSchedule",
+          },
+          {
+            id: "PlayerDetail",
+            label: "내정보",
+            icon: "account",
+            screen: "PlayerDetail",
+          },
+        ];
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom || 10 }]}>
       {tabs.map((tab) => {
         // Tab.Navigator 모드일 경우 state 사용, 아니면 prop의 activeTab 사용 (fallback)
-        const isFocused = state 
+        const isFocused = state
           ? state.routes[state.index].name === tab.screen
           : false;
 

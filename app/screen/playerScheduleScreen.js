@@ -15,10 +15,11 @@ import {
   MEMBER_API_ENDPOINT,
   SCHEDULE_API_ENDPOINT,
   TEAM_API_ENDPOINT,
-  WEEKDAY_LABELS,
 } from "../constants/scheduleConstants";
 import { styles } from "./playerScheduleScreen.styles";
 import CommonHeader from "../components/CommonHeader";
+
+const CALENDAR_WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
 const PlayerScheduleScreen = ({ route }) => {
   const { id: routeId } = route.params;
@@ -343,7 +344,7 @@ const PlayerScheduleScreen = ({ route }) => {
             <Text style={styles.cardEyebrow}>Schedule Calendar</Text>
             <View style={styles.calendarTopRow}>
               <Text
-                style={styles.cardTitle}
+                style={styles.calendarTitle}
               >{`${monthDate.getFullYear()}년 ${monthDate.getMonth() + 1}월`}</Text>
               <TouchableOpacity
                 style={styles.todayButton}
@@ -374,7 +375,7 @@ const PlayerScheduleScreen = ({ route }) => {
 
               <Animated.View style={{ transform: [{ translateX }], opacity }}>
                 <View style={styles.weekHeader}>
-                  {WEEKDAY_LABELS.map((day) => (
+                  {CALENDAR_WEEKDAYS.map((day) => (
                     <Text key={day} style={styles.weekDay}>
                       {day}
                     </Text>
@@ -466,17 +467,21 @@ const PlayerScheduleScreen = ({ route }) => {
 
           <View style={styles.card}>
             <View style={styles.listTitleRow}>
-              <View>
-                <Text style={styles.cardEyebrow}>Attendance</Text>
-                <Text style={styles.cardTitle}>
+              <View style={styles.headerTextGroup}>
+                <Text style={styles.attendanceEyebrow}>Attendance</Text>
+                <Text style={styles.attendanceTitle}>
                   {memberTeamName
                     ? `${memberTeamName} 경기 일정 관리`
                     : "경기 일정 관리"}
                 </Text>
               </View>
-              <Text style={styles.listCountText}>
-                {scheduleList.length}경기
-              </Text>
+              {!loading && scheduleList.length > 0 ? (
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>
+                    {scheduleList.length} games
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
             {loading ? (
