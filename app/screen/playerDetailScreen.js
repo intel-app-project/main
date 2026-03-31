@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Polygon, Text as SvgText } from "react-native-svg";
+import Svg, { Polygon, Text as SvgText, SvgUri } from "react-native-svg";
 import { styles } from "./playerDetailScreen.styles";
 import { supabase } from "../lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -399,9 +399,16 @@ const PlayerDetailScreen = ({navigation, route}) => {
         <View style={styles.heroSection}>
           <Text style={styles.largeTeamName}>TEAM {team?.name || "TERRA"}</Text>
           <View style={styles.heroMainRow}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.heroAvatarContainer}>
+              <SvgUri
+                uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${member.Name}`}
+                width="100%"
+                height="100%"
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 16 }}>
               <Text style={styles.heroNumber}>#{member?.Num || "00"}</Text>
-              <Text style={styles.heroName} numberOfLines={1} adjustsFontSizeToFit>{member?.Name}</Text>
+              <Text style={styles.heroName} numberOfLines={1} adjustsFontSizeToFit>{member.Name}</Text>
             </View>
             <View 
               style={[

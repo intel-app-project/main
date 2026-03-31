@@ -189,6 +189,31 @@ def get_team():
     return response.data
 
 
+@app.get("/api/team/{team_id}")
+def get_team_by_id(team_id: int):
+    try:
+        response = (
+            supabase.table("team").select("*").eq("id", team_id).execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/team/{team_id}/best_member")
+def update_best_member(team_id: int, best_member: dict):
+    try:
+        response = (
+            supabase.table("team")
+            .update({"best_member": best_member})
+            .eq("id", team_id)
+            .execute()
+        )
+        return {"message": "베스트 멤버가 저장되었습니다.", "data": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/member/{user_id}")
 def get_member_by_user_id(user_id: str):
     query = supabase.table("member").select("*")

@@ -12,6 +12,7 @@ import PlayerScheduleScreen from "../screen/playerScheduleScreen";
 import LeagueGameScheduleScreen from "../screen/leagueGameScheduleScreen";
 import DirectorScheduleScreen from "../screen/directorScheduleScreen";
 import LineupScreen from "../screen/lineupScreen";
+import BestMemberScreen from "../screen/BestMemberScreen";
 import ManagerScheduleScreen from "../screen/managerScheduleScreen";
 import CommonFooter from "../components/CommonFooter";
 
@@ -54,16 +55,22 @@ const ScheduleStack = ({ route }) => {
   );
 };
 
-const TeamStack = ({ route }) => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen
-      name="TeamInfoHome"
-      component={TeamInfoScreen}
-      initialParams={route.params}
-    />
-    <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
-  </Stack.Navigator>
-);
+const TeamStack = ({ route }) => {
+  const { id, position } = route.params;
+  const isDirector = position === "감독";
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="TeamInfoHome"
+        component={TeamInfoScreen}
+        initialParams={{ id, isDirector }}
+      />
+      <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
+      <Stack.Screen name="BestMember" component={BestMemberScreen} />
+    </Stack.Navigator>
+  );
+};
 
 const LeagueStack = ({ route }) => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -185,7 +192,7 @@ const MainTabNavigator = ({ route }) => {
       <Tab.Screen
         name="TeamInfo"
         component={TeamStack}
-        initialParams={{ id }}
+        initialParams={{ id, position }}
       />
       <Tab.Screen
         name="PlayerDetail"

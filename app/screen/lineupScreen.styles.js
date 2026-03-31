@@ -6,7 +6,6 @@ export const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: "#faf6f0", // Warm cream
-    paddingTop: 50 
   },
   centered: { 
     flex: 1, 
@@ -46,12 +45,12 @@ export const styles = StyleSheet.create({
   },
 
   fieldSection: { 
-    padding: 20 
+    padding: 10 
   },
   fieldCard: { 
     backgroundColor: "#ffffff", 
     borderRadius: 20, 
-    padding: 24, 
+    padding: 2, 
     alignItems: "center",
     // 부드러운 그림자 효과
     shadowColor: "#2e3230",
@@ -64,8 +63,25 @@ export const styles = StyleSheet.create({
     color: "#4a7c59", 
     fontSize: 15, 
     fontWeight: "bold", 
-    marginBottom: 20, 
+    marginBottom: 12, // 제목 아래 여백 살짝 조정
     alignSelf: 'flex-start' 
+  },
+  autoBenchBtn: {
+    backgroundColor: "#4a7c59",
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#4a7c59",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  autoBenchBtnText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "bold",
   },
   diamond: { 
     width: '100%', 
@@ -220,100 +236,152 @@ export const styles = StyleSheet.create({
   posDH: { position: 'absolute', bottom: '15%', right: '5%' }, // 지명타자 (사이드 배치)
 
   slotStadium: {
-    // 야구장 내부에 표시되는 선수 이름표 슬롯 스타일
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 5,
-    alignItems: 'center',
+    alignItems: "center",
     minWidth: 55,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)', // 약간 불투명한 흰색
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 1)",
     borderWidth: 1.5,
-    borderColor: '#1d3557',
+    borderColor: "#1d3557",
+    elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  slotPosStadium: {
-    // 슬롯 내 포지션 텍스트 (P, C, 1B 등)
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#e76f51',
-    marginBottom: 1,
+  slotAvatarContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#f0f7f2",
+    overflow: "hidden",
+    marginBottom: 4,
+    borderWidth: 1.2,
+    borderColor: "rgba(74, 124, 89, 0.1)",
+  },
+  slotBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
   },
   slotNameStadium: {
-    // 슬롯 내 선수 이름 텍스트
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#1d3557',
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#1d3557",
+  },
+  slotPosStadium: {
+    fontSize: 7.5,
+    fontWeight: "900",
+    color: "#e76f51",
+    backgroundColor: "rgba(231, 111, 81, 0.1)",
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
   },
   
-  // Batting List Styles
+  // Batting List Styles (Redesigned as Vertical columns)
   battingSection: { 
     padding: 20 
   },
-  battingList: { 
+  battingBoard: { 
     backgroundColor: "#ffffff", 
     borderRadius: 20, 
-    padding: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     shadowColor: "#2e3230",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 20,
     elevation: 3,
   },
-  battingRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingVertical: 14, 
-    borderBottomWidth: 1, 
-    borderBottomColor: 'rgba(46, 50, 48, 0.05)' 
+  battingColumn: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+    width: (width - 56) / 9,
   },
-  battingRowActive: { 
-    backgroundColor: 'rgba(74, 124, 89, 0.05)', 
-    borderRadius: 12 
+  battingColumnActive: {
+    backgroundColor: 'rgba(74, 124, 89, 0.08)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(74, 124, 89, 0.3)',
   },
-  battingOrder: { 
-    color: '#4a7c59', 
-    fontSize: 16, 
-    fontWeight: 'bold', 
-    width: 40 
+  battingOrderNum: {
+    color: '#4a7c59',
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: 10,
   },
-  battingName: { 
-    color: '#2e3230', 
-    fontSize: 17, 
-    flex: 1 
+  battingVerticalName: {
+    color: '#2e3230',
+    fontSize: 14,
+    fontWeight: '900',
+    textAlign: 'center',
+    lineHeight: 18,
+    width: 20,
   },
-  battingEmpty: { 
-    color: 'rgba(46, 50, 48, 0.3)', 
-    fontSize: 14 
+  battingVerticalEmpty: {
+    color: 'rgba(46, 50, 48, 0.3)',
+    fontSize: 10,
+    textAlign: 'center',
+    width: 20,
   },
 
   rosterSection: { 
     padding: 20 
   },
-  memberCard: { 
+  rosterCard: {
     backgroundColor: "#ffffff", 
-    borderRadius: 15, 
-    padding: 20, 
-    marginBottom: 16,
+    borderRadius: 20, 
+    paddingVertical: 8,
     shadowColor: "#2e3230",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 3,
+  },
+  memberRow: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(46, 50, 48, 0.04)',
   },
   memberName: { 
     color: "#2e3230", 
     fontSize: 17, 
     fontWeight: "bold", 
-    marginBottom: 16,
+    marginBottom: 8, // Reduced from 16 since it's now inside memberTextWrap
+  },
+  memberInfoWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  memberAvatarContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(74, 124, 89, 0.05)",
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "rgba(74, 124, 89, 0.1)",
+  },
+  memberTextWrap: {
+    flex: 1,
   },
   posButtons: { 
     flexDirection: 'row', 
     flexWrap: 'wrap', 
-    gap: 8 
+    gap: 8,
+    justifyContent: 'flex-end',
+    maxWidth: '65%',
   },
   posBtn: { 
     paddingHorizontal: 10, 

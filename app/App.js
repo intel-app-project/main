@@ -6,6 +6,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import LoginScreen from "./screen/loginScreen";
 import MainTabNavigator from "./navigation/MainTabNavigator";
 
+
+
 const Stack = createStackNavigator();
 
 export default function App() {
