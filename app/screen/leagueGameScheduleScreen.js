@@ -32,9 +32,9 @@ const MAX_VERTICAL_TO_HORIZONTAL_RATIO = Math.tan(
 const DRAG_FOLLOW_LIMIT = 42;
 const MESSAGE_LOAD_ERROR = "Failed to load league schedule.";
 const MESSAGE_NO_UPCOMING = "No upcoming matches.";
-const MESSAGE_LOAD_MORE = "Load More";
-const MESSAGE_GAME_UNIT = " games";
-const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const MESSAGE_LOAD_MORE = "더 보기";
+const MESSAGE_GAME_UNIT = " 경기";
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const pick = (obj, keys) => {
   if (!obj) {
@@ -611,7 +611,7 @@ const LeagueGameScheduleScreen = () => {
                     activeTab === "PAST" && styles.activeTabText,
                   ]}
                 >
-                  PAST MATCHES
+                  이전 경기
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -627,7 +627,7 @@ const LeagueGameScheduleScreen = () => {
                     activeTab === "FUTURE" && styles.activeTabText,
                   ]}
                 >
-                  FUTURE MATCHES
+                  이후 경기
                 </Text>
               </TouchableOpacity>
             </View>
@@ -660,8 +660,8 @@ const LeagueGameScheduleScreen = () => {
                               styles.scheduleItemHighlight,
                           ]}
                         >
-                            <View style={styles.scheduleItemRow}>
-                              <View style={styles.scheduleMain}>
+                          <View style={styles.scheduleItemRow}>
+                            <View style={styles.scheduleMain}>
                               <Text
                                 style={[
                                   styles.scheduleMatchText,

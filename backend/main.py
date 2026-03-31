@@ -18,7 +18,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from supabase import Client, create_client
-from review_logic import generate_all_reviews, generate_player_review
+from review_logic import (
+    generate_all_reviews,
+    generate_player_review,
+    generate_team_reviews_for_date,
+)
 from google import genai
 from google.genai import types
 import base64
@@ -91,6 +95,11 @@ class AttendanceUpdatePayload(BaseModel):
 class ReviewGenerateByDatePayload(BaseModel):
     schedule_date: str
     team_id: int
+
+
+class MemberUpdatePayload(BaseModel):
+    id: int
+    data: dict
 
 
 class ScheduleLineupUpdate(BaseModel):
@@ -253,6 +262,20 @@ def get_member_by_user_id(user_id: str):
     }
 
 
+@app.post("/api/member")
+def update_member(payload: MemberUpdatePayload):
+    try:
+        response = (
+            supabase.table("member")
+            .update(payload.data)
+            .eq("Id", payload.id)
+            .execute()
+        )
+        return {"message": "member updated", "data": response.data}
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+
 @app.patch("/api/schedule/attendance")
 def update_schedule_attendance(payload: AttendanceUpdatePayload):
     normalized_side = payload.side.lower().strip()
@@ -320,6 +343,18 @@ def get_player_review(member_id: int):
 def generate_all_player_reviews():
     try:
         return generate_all_reviews(supabase)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/api/review/generate-by-date")
+def generate_team_reviews_by_date(payload: ReviewGenerateByDatePayload):
+    try:
+        return generate_team_reviews_for_date(
+            supabase,
+            payload.team_id,
+            payload.schedule_date,
+        )
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 

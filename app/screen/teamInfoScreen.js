@@ -28,7 +28,7 @@ const TeamInfoScreen = ({ route }) => {
   useFocusEffect(
     useCallback(() => {
       fetchTeamData();
-    }, [])
+    }, []),
   );
 
   const fetchTeamData = async () => {
@@ -92,7 +92,7 @@ const TeamInfoScreen = ({ route }) => {
     const displayName = member ? member.Name : "---";
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.slotStadium}
         onPress={() => {
           if (idValue) {
@@ -127,7 +127,7 @@ const TeamInfoScreen = ({ route }) => {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <CommonHeader title="팀 정보" />
+        <CommonHeader title="teamInfoScreen" />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#4a7c59" />
           <Text style={{ marginTop: 12, color: "#4a7c59" }}>
@@ -140,13 +140,13 @@ const TeamInfoScreen = ({ route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <CommonHeader title="TeamInfoScreen" />
+      <CommonHeader title="teamInfoScreen" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* 최상단: 팀 기본 정보 섹션 */}
-        <View style={styles.teamInfoSection} >
+        <View style={styles.teamInfoSection}>
           <View style={styles.teamInfoCard}>
             <View style={styles.teamLogoPlaceholder}>
               {teamInfo?.emblem ? (
@@ -179,11 +179,13 @@ const TeamInfoScreen = ({ route }) => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>베스트 라인업</Text>
               {isDirector ? (
-                <TouchableOpacity 
-                   onPress={() => navigation.navigate("BestMember", { id })}
-                   style={[styles.badge, { backgroundColor: '#4a7c59' }]}
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("BestMember", { id })}
+                  style={[styles.badge, { backgroundColor: "#4a7c59" }]}
                 >
-                  <Text style={[styles.badgeText, { color: '#fff' }]}>관리하기</Text>
+                  <Text style={[styles.badgeText, { color: "#fff" }]}>
+                    관리하기
+                  </Text>
                 </TouchableOpacity>
               ) : (
                 <View style={styles.badge}>
@@ -274,7 +276,8 @@ const TeamInfoScreen = ({ route }) => {
                       {member.Name}
                     </Text>
                     <Text style={styles.playerMeta} numberOfLines={1}>
-                      #{member.Num || "00"} · {member.Primary_Position || "미정"}
+                      #{member.Num || "00"} ·{" "}
+                      {member.Primary_Position || "미정"}
                     </Text>
                   </TouchableOpacity>
                 ))}

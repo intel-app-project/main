@@ -34,9 +34,9 @@ const MAX_VERTICAL_TO_HORIZONTAL_RATIO = Math.tan(
 const DRAG_FOLLOW_LIMIT = 42;
 const MESSAGE_LOAD_ERROR = "Failed to load league schedule.";
 const MESSAGE_NO_UPCOMING = "No upcoming matches.";
-const MESSAGE_LOAD_MORE = "Load More";
-const MESSAGE_GAME_UNIT = " games";
-const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const MESSAGE_LOAD_MORE = "더 보기";
+const MESSAGE_GAME_UNIT = " 경기";
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const lineupButtonStyle = {
   flexShrink: 0,
@@ -400,17 +400,14 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
   const handleSendReview = async (game) => {
     try {
       setReviewSendingKey(game.scheduleDate);
-      const response = await fetch(
-        `${API_BASE_URL}/api/review/generate-by-date`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            schedule_date: game.scheduleDate,
-            team_id: managedTeamId,
-          }),
-        },
-      );
+      const response = await fetch(`${API_BASE_URL}/api/review/generate-by-date`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schedule_date: game.scheduleDate,
+          team_id: managedTeamId,
+        }),
+      });
 
       const result = await response.json();
       if (!response.ok) {
@@ -419,23 +416,19 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
 
       const reviewCount = Number(result?.count ?? 0);
       if (reviewCount === 0) {
-        Alert.alert(
-          "Review Message",
-          "\uD604\uC7AC \uC5C5\uB85C\uB4DC\uB41C \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
-        );
+        Alert.alert("Review Message", "현재 업로드된 기록이 없습니다.");
         return;
       }
 
       Alert.alert(
         "Review Message",
-        `${reviewCount}\uBA85\uC758 \uC120\uC218\uC5D0\uAC8C \uB9AC\uBDF0 \uBA54\uC2DC\uC9C0\uB97C \uC0DD\uC131\uD588\uC2B5\uB2C8\uB2E4.`,
+        `${reviewCount}명의 선수에게 리뷰 메시지를 생성했습니다.`,
       );
     } catch (error) {
       console.error("[DirectorScheduleScreen] review send failed", error);
       Alert.alert(
         "Review Message",
-        error.message ||
-          "\uB9AC\uBDF0 \uBA54\uC2DC\uC9C0\uB97C \uC0DD\uC131\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+        error.message || "리뷰 메시지를 생성하지 못했습니다.",
       );
     } finally {
       setReviewSendingKey("");
@@ -600,7 +593,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
                 ]}
                 onPress={() => runMonth(-1)}
               >
-                <Text style={styles.calendarSideArrow}>{"\u2039"}</Text>
+                <Text style={styles.calendarSideArrow}>{"‹"}</Text>
               </TouchableOpacity>
 
               <Animated.View
@@ -663,7 +656,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
                 ]}
                 onPress={() => runMonth(1)}
               >
-                <Text style={styles.calendarSideArrow}>{"\u203A"}</Text>
+                <Text style={styles.calendarSideArrow}>{"›"}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -678,9 +671,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
             <View style={styles.sectionHeaderRow}>
               <View>
                 <Text style={styles.sectionEyebrow}>Match schedule</Text>
-                <Text style={styles.sectionTitle}>
-                  {"\uACBD\uAE30 \uC77C\uC815"}
-                </Text>
+                <Text style={styles.sectionTitle}>경기 일정</Text>
               </View>
               {!loading && filteredGames.length > 0 ? (
                 <View style={styles.countBadge}>
@@ -706,7 +697,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
                     activeTab === "PAST" && styles.activeTabText,
                   ]}
                 >
-                  PAST MATCHES
+                  이전 경기
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -722,7 +713,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
                     activeTab === "FUTURE" && styles.activeTabText,
                   ]}
                 >
-                  FUTURE MATCHES
+                  이후 경기
                 </Text>
               </TouchableOpacity>
             </View>
@@ -795,7 +786,7 @@ const DirectorScheduleScreen = ({ navigation, route }) => {
                                     }
                                   >
                                     <Text style={lineupButtonTextStyle}>
-                                      {"\uB77C\uC778\uC5C5 \uAD6C\uC131"}
+                                      라인업 구성
                                     </Text>
                                   </TouchableOpacity>
                                 ) : null}

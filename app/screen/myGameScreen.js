@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ImageBackground,
   ScrollView,
+  TouchableOpacity,
   Text,
   View,
 } from "react-native";
 import { SvgUri } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
   MEMBER_API_ENDPOINT,
@@ -18,7 +19,7 @@ import { styles } from "./myGameScreen.styles";
 import CommonHeader from "../components/CommonHeader";
 import { useEffect, useState } from "react";
 
-const STADIUM_NAME = "Suwon KT Wiz Park";
+const STADIUM_NAME = "수원 KT 위즈파크";
 const STADIUM_IMAGE_URI =
   "https://i.namu.wiki/i/s5el6DSDQjJetZbb2WxKe-H8PtDQ6dfeZuMSKUtyro-XpSYN-lY2F-baCLWr_IqPi6nTTNQpa5zjc18gyN5xX01x2hKrAn65EKGflZmbyF1C5-hjFB2Te6mPOGzUeimD3AwO-qVSNz_C8nQSgaaozA.webp";
 
@@ -207,7 +208,11 @@ const MyGameScreen = ({ route }) => {
         const defenseNames = {};
         Object.keys(lineup.defense || {}).forEach((pos) => {
           if (pos !== "BENCH") {
-            defenseNames[pos] = getNameById(lineup.defense[pos]);
+            const memberId = lineup.defense[pos];
+            defenseNames[pos] = {
+              id: memberId ? Number(memberId) : null,
+              name: getNameById(memberId),
+            };
           }
         });
 
@@ -291,7 +296,7 @@ const MyGameScreen = ({ route }) => {
         >
           <View style={styles.heroCard}>
             <Text style={styles.heroEyebrow}>STADIUM</Text>
-            <Text style={styles.heroTitle}>League Stadium</Text>
+            <Text style={styles.heroTitle}>리그 구장</Text>
 
             <ImageBackground
               source={{ uri: STADIUM_IMAGE_URI }}
@@ -307,7 +312,7 @@ const MyGameScreen = ({ route }) => {
 
           <View style={styles.card}>
             <Text style={styles.cardEyebrow}>NEXT MATCH</Text>
-            <Text style={styles.cardTitle}>League Next Match</Text>
+            <Text style={styles.cardTitle}>이번 경기</Text>
 
             {nearestGame ? (
               <View style={styles.nearestCard}>
@@ -361,7 +366,7 @@ const MyGameScreen = ({ route }) => {
               <View style={styles.fieldSection}>
                 <View style={styles.fieldCard}>
                   <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Lineup</Text>
+                    <Text style={styles.sectionTitle}>라인업</Text>
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>BEST 10</Text>
                     </View>
@@ -477,7 +482,7 @@ const MyGameScreen = ({ route }) => {
                       { width: "100%", marginTop: 20 },
                     ]}
                   >
-                    <Text style={styles.sectionTitle}>Bench</Text>
+                    <Text style={styles.sectionTitle}>후보 선수</Text>
                     {matchData.bench.length > 0 ? (
                       <Text style={styles.benchText}>
                         {matchData.bench.join(", ")}
@@ -491,7 +496,7 @@ const MyGameScreen = ({ route }) => {
 
               <View style={styles.card}>
                 <Text style={styles.cardEyebrow}>Roster</Text>
-                <Text style={styles.cardTitle}>Available Players</Text>
+                <Text style={styles.cardTitle}>참석 선수 명단</Text>
                 {matchData.roster.length > 0 ? (
                   <View style={styles.rosterGrid}>
                     {matchData.roster.map((item) => (

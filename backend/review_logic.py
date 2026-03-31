@@ -152,25 +152,19 @@ def _issues(member, baseline, recent, is_pitcher):
 def _review_text(member, team_name, mode, date, issues):
     name = member.get("Name") or "선수"
     position = member.get("Primary_Position") or "-"
-    issue_text = "\n".join([f"- {issue}" for issue in issues[:3]])
+    issue_text = "\n".join([f"{issue}" for issue in issues[:3]])
     return (
-        f"{team_name} {name}({position}) {mode} 리뷰\n"
+        f"{mode}에 대한 리뷰\n"
         f"{date} 경기 기준으로 이전 경기 흐름과 비교했을 때, 아래 부분을 먼저 보완하는 것이 좋습니다.\n"
+        "-------------------(리뷰 내용)-------------------\n"
         f"{issue_text}\n"
+        "------------------------------------------------\n"
         "다음 경기에서는 위 항목을 우선 점검하면서 플레이 리듬을 회복하는 데 집중해보세요."
     )
 
 
 def _needs_refresh(row):
-    message = str(row.get("message") or "")
-    issues = row.get("issues") or []
-
-    if " review" in message:
-        return True
-    if "??" in message:
-        return True
-    if "?" in message and "리뷰" not in message:
-        return True
+    return True # Force refresh once to apply new format
 
     for issue in issues:
         text = str(issue or "")
