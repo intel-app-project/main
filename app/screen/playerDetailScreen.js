@@ -583,7 +583,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
                 (activeMode !== "HITTER" || !member?.Batting_Order_Default) && styles.orderBadgeContainerHidden
               ]}
             >
-              <Text style={styles.orderBadgeText}>타석 {member?.Batting_Order_Default || "-"}</Text>
+              <Text style={styles.orderBadgeText}>최적 타순 : {member?.Batting_Order_Default || "-"}번</Text>
             </View>
           </View>
           <View style={styles.badgeContainer}>

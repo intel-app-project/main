@@ -91,16 +91,12 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(112, 92, 48, 0.1)",
     borderWidth: 1.5,
     borderColor: "#705c30",
-    width: 72,
+    width: 110,
     height: 50,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#705c30",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
+
   },
   orderBadgeContainerHidden: {
     opacity: 0,
