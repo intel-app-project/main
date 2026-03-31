@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -92,7 +92,19 @@ const TeamInfoScreen = ({ route }) => {
     const displayName = member ? member.Name : "---";
 
     return (
-      <View style={styles.slotStadium}>
+      <TouchableOpacity 
+        style={styles.slotStadium}
+        onPress={() => {
+          if (idValue) {
+            navigation.navigate("PlayerDetail", {
+              id: idValue,
+              loginId: id,
+              isDirector,
+            });
+          }
+        }}
+        activeOpacity={0.7}
+      >
         {member && (
           <View style={styles.slotAvatarContainer}>
             <SvgUri
@@ -108,7 +120,7 @@ const TeamInfoScreen = ({ route }) => {
           </Text>
           <Text style={styles.slotPosStadium}>{pos}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -246,6 +258,7 @@ const TeamInfoScreen = ({ route }) => {
                     onPress={() =>
                       navigation.navigate("PlayerDetail", {
                         id: member.Id,
+                        loginId: id,
                         isDirector,
                       })
                     }
