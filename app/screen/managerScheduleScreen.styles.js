@@ -7,8 +7,9 @@ export const styles = StyleSheet.create({
     width: "100%",
   },
   formContainer: {
+    marginTop: 12, 
     paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingBottom: 12
   },
   formTitle: {
     fontSize: 18,
@@ -18,11 +19,11 @@ export const styles = StyleSheet.create({
   },
   input: {
     height: 52,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: "rgba(74, 124, 89, 0.2)",
     borderRadius: 12,
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 8,
     backgroundColor: "#faf6f0",
     fontSize: 15
   },
@@ -42,8 +43,8 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   divider: {
-    height: 1,
-    backgroundColor: "rgba(74, 124, 89, 0.1)",
+    height: 2,
+    backgroundColor: "rgba(58, 91, 68, 0.1)",
     marginVertical: 10,
     marginHorizontal: 24
   },
@@ -56,10 +57,10 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   itemCard: {
-    padding: 24,
+    padding: 16,
     borderRadius: 12,
     backgroundColor: "#faf6f0",
-    marginBottom: 16,
+    marginBottom: 8,
     shadowColor: "#2e3230",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
@@ -103,7 +104,7 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
   },
   itemText: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#4b5563",
   },
   emptyText: {
@@ -154,9 +155,9 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
   },
   updatedAtText: {
-    fontSize: 11,
+    fontSize: 10,
     color: "#9ca3af",
-    marginTop: 4,
+    marginTop: 16,
     textAlign: 'right'
   }
 });

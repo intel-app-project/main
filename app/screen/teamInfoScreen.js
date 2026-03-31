@@ -137,9 +137,18 @@ const TeamInfoScreen = ({ route }) => {
         <View style={styles.teamInfoSection} >
           <View style={styles.teamInfoCard}>
             <View style={styles.teamLogoPlaceholder}>
-              <Text style={styles.teamLogoText}>
-                {teamInfo?.name ? teamInfo.name[0] : "T"}
-              </Text>
+              {teamInfo?.emblem ? (
+                <SvgUri
+                  uri={teamInfo.emblem}
+                  width={50}
+                  height={50}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              ) : (
+                <Text style={styles.teamLogoText}>
+                  {teamInfo?.name ? teamInfo.name[0] : "T"}
+                </Text>
+              )}
             </View>
             <View style={styles.teamTextContainer}>
               <Text style={styles.teamName}>
