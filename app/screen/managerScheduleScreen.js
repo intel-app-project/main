@@ -21,8 +21,14 @@ const ManagerScheduleScreen = ({ navigation }) => {
   const [teams, setTeams] = useState([]);
   const [teamMap, setTeamMap] = useState({}); // 팀 ID와 팀 이름을 매칭하는 객체 상태 (예: { 1: "야구팀", 2: "축구팀" })
 
+  const todayDateKey = [
+    new Date().getFullYear(),
+    String(new Date().getMonth() + 1).padStart(2, "0"),
+    String(new Date().getDate()).padStart(2, "0"),
+  ].join("-");
+
   // Form State (신규 등록 및 수정 폼에 사용되는 상태들)
-  const [date, setDate] = useState(""); // 경기 날짜 입력값 (YYYYMMDD 형식 등)
+  const [date, setDate] = useState(todayDateKey); // 경기 날짜 입력값 (YYYYMMDD 형식 등)
   const [home, setHome] = useState(""); // 홈팀 ID (숫자)
   const [away, setAway] = useState(""); // 원정팀 ID (숫자)
   const [submitting, setSubmitting] = useState(false); // 폼 제출 버튼 연타 방지 및 로딩 상태
@@ -97,14 +103,7 @@ const ManagerScheduleScreen = ({ navigation }) => {
     })),
     [schedules],
   );
-  const todayKey = useMemo(() => {
-    const today = new Date();
-    return [
-      today.getFullYear(),
-      String(today.getMonth() + 1).padStart(2, "0"),
-      String(today.getDate()).padStart(2, "0"),
-    ].join("-");
-  }, []);
+
 
 
 
@@ -159,6 +158,11 @@ const ManagerScheduleScreen = ({ navigation }) => {
       return;
     }
 
+    if (date < todayDateKey) {
+      Alert.alert("입력 오류", "지난 날짜에는 경기를 등록할 수 없습니다.");
+      return;
+    }
+
     if (home === away) {
       Alert.alert("입력 오류", "홈팀과 원정팀은 서로 다른 팀이어야 합니다.");
       return;
@@ -206,7 +210,12 @@ const ManagerScheduleScreen = ({ navigation }) => {
 
   // 폼 하단의 '수정 취소' 버튼 클릭 시, 입력값 초기화 및 신규 등록 모드로 복귀
   const handleCancelEdit = () => {
-    resetScheduleForm({ setEditingDate, setDate, setHome, setAway });
+    resetScheduleForm({ 
+      setEditingDate, 
+      setDate: () => setDate(todayDateKey), 
+      setHome, 
+      setAway 
+    });
     setOpenSelector(null);
     setMonthDate(toMonthStart(""));
   };
@@ -311,19 +320,17 @@ const ManagerScheduleScreen = ({ navigation }) => {
           <View style={styles.headerMain}>
             <Text style={styles.gameTitle}>{formatDisplayDate(item.date)}</Text>
           </View>
-          <Text style={styles.headerBadge}>경기 일정</Text>
         </View>
 
-        {/* 팀 ID 대신 매핑된 팀 이름 띄우기 (만약 매핑 안 되면 ID 번호로 떨어짐) */}
         <View style={styles.matchupRow}>
           <View style={[styles.teamPill, styles.homeTeamPill]}>
             <Text style={styles.teamLabel}>HOME</Text>
-            <Text style={styles.teamName}>{teamMap[item.home] || `${item.home}`}</Text>
+            <Text style={styles.teamName}>{teamMap[item.home]}</Text>
           </View>
           <Text style={styles.vsText}>VS</Text>
           <View style={[styles.teamPill, styles.awayTeamPill]}>
             <Text style={styles.teamLabel}>AWAY</Text>
-            <Text style={styles.teamName}>{teamMap[item.away] || `${item.away}`}</Text>
+            <Text style={styles.teamName}>{teamMap[item.away]}</Text>
           </View>
         </View>
 
@@ -373,13 +380,7 @@ const ManagerScheduleScreen = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.todayButton}
                   onPress={() => {
-                    const today = new Date();
-                    const todayKey = [
-                      today.getFullYear(),
-                      String(today.getMonth() + 1).padStart(2, "0"),
-                      String(today.getDate()).padStart(2, "0"),
-                    ].join("-");
-                    handleSelectCalendarDate(todayKey);
+                    handleSelectCalendarDate(todayDateKey);
                   }}
                 >
                   <Text style={styles.todayButtonText}>오늘</Text>
@@ -414,7 +415,7 @@ const ManagerScheduleScreen = ({ navigation }) => {
                         const isCurrentMonth = cell.isCurrentMonth;
                         const isSelected = date === cell.dateKey;
                         const hasSchedule = scheduledDateSet.has(cell.dateKey);
-                        const isToday = cell.dateKey === todayKey;
+                        const isToday = cell.dateKey === todayDateKey;
 
                         return (
                           <TouchableOpacity
@@ -465,14 +466,7 @@ const ManagerScheduleScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {date ? (
-              <Text style={styles.selectedDateText}>
-                선택된 날짜: {formatDisplayDate(date)}
-              </Text>
-            ) : null}
-            <Text style={styles.todayDateText}>
-              오늘 날짜: {formatDisplayDate(todayKey)}
-            </Text>
+            
             <View style={styles.calendarLegendRow}>
               <View style={styles.calendarLegendItem}>
                 <View style={[styles.calendarLegendSwatch, styles.calendarLegendToday]} />
@@ -486,6 +480,9 @@ const ManagerScheduleScreen = ({ navigation }) => {
                 <View style={[styles.calendarLegendSwatch, styles.calendarLegendEvent]} />
                 <Text style={styles.calendarLegendText}>예정 경기</Text>
               </View>
+              <Text style={styles.dateText}>
+                오늘 날짜: {formatDisplayDate(todayDateKey)} | 선택 날짜: {formatDisplayDate(date)}
+              </Text>
             </View>
           </View>
         </View>

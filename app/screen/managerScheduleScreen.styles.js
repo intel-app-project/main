@@ -159,13 +159,7 @@ export const styles = StyleSheet.create({
   dayDim: {
     color: "#c1bcb4",
   },
-  selectedDateText: {
-    fontSize: 14,
-    color: "#4a7c59",
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  todayDateText: {
+  dateText: {
     fontSize: 13,
     color: "#705c30",
     fontWeight: "600",
