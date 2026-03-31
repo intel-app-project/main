@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from supabase import Client, create_client
+from review_logic import generate_all_reviews, generate_player_review
 
 load_dotenv()
 
@@ -261,6 +262,24 @@ def update_schedule_attendance(payload: AttendanceUpdatePayload):
 def get_game():
     response = supabase.table("game").select("*").execute()
     return response.data
+
+
+@app.get("/api/review/{member_id}")
+def get_player_review(member_id: int):
+    try:
+        return generate_player_review(supabase, member_id)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.post("/api/review/generate-all")
+def generate_all_player_reviews():
+    try:
+        return generate_all_reviews(supabase)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
 
 @app.get("/")
 def read_root():

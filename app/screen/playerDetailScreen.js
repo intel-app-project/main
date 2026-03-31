@@ -13,6 +13,7 @@ import { styles } from "./playerDetailScreen.styles";
 import { supabase } from "../lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import CommonHeader from "../components/CommonHeader";
+import { API_BASE_URL } from "../constants/commonConstants";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - 24; // Based on 12px horizontal padding
@@ -29,6 +30,8 @@ const PlayerDetailScreen = ({navigation, route}) => {
   const [canPitch, setCanPitch] = useState(false);
   const [canBat, setCanBat] = useState(false);
   const [recentGames, setRecentGames] = useState([]);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   const [hitterStats, setHitterStats] = useState({
     contact: 0, power: 0, speed: 0, eye: 0, clutch: 0,
@@ -55,6 +58,7 @@ const PlayerDetailScreen = ({navigation, route}) => {
       setMember(null);
       setTeam(null);
       setRecentGames([]);
+      setReviewText("");
       setHitterStats({
         contact: 0, power: 0, speed: 0, eye: 0, clutch: 0,
         avg: ".000", hr: 0, rbi: 0, ops: ".000", obp: ".000", slg: ".000",
@@ -108,10 +112,31 @@ const PlayerDetailScreen = ({navigation, route}) => {
         setCanPitch(true);
         setActiveMode("PITCHER");
       }
+
+      await fetchReview(memberData.Id);
     } catch (error) {
       console.error("Error fetching player data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReview = async (memberId) => {
+    try {
+      setReviewLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/review/${memberId}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.detail || "review load failed");
+      }
+
+      setReviewText(data?.review || "");
+    } catch (error) {
+      console.error("Error fetching review:", error);
+      setReviewText("리뷰를 아직 불러오지 못했습니다.");
+    } finally {
+      setReviewLoading(false);
     }
   };
 
@@ -398,12 +423,16 @@ const PlayerDetailScreen = ({navigation, route}) => {
             </View>
           </View>
           
-          {team?.trait && (
-            <View style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(74, 124, 89, 0.05)", borderRadius: 8 }}>
-              <Text style={{ fontSize: 12, color: "#4a7c59", fontWeight: "800", marginBottom: 4 }}>TEAM PHILOSOPHY</Text>
-              <Text style={{ fontSize: 13, color: "#705c30", lineHeight: 18 }}>{team.trait}</Text>
-            </View>
-          )}
+          <View style={styles.reviewCard}>
+            <Text style={styles.reviewEyebrow}>REVIEW</Text>
+            {reviewLoading ? (
+              <ActivityIndicator size="small" color="#4a7c59" style={styles.reviewLoader} />
+            ) : (
+              <Text style={styles.reviewText}>
+                {reviewText || "리뷰가 아직 생성되지 않았습니다."}
+              </Text>
+            )}
+          </View>
         </View>
 
         {(member?.Primary_Position === "감독" || member?.Primary_Position === "기록원") ? (

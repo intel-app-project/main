@@ -155,6 +155,29 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
+  reviewCard: {
+    marginTop: 16,
+    padding: 14,
+    backgroundColor: "rgba(74, 124, 89, 0.05)",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(74, 124, 89, 0.12)",
+  },
+  reviewEyebrow: {
+    fontSize: 12,
+    color: "#4a7c59",
+    fontWeight: "800",
+    marginBottom: 6,
+    letterSpacing: 0.8,
+  },
+  reviewText: {
+    fontSize: 13,
+    color: "#705c30",
+    lineHeight: 19,
+  },
+  reviewLoader: {
+    marginVertical: 6,
+  },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "flex-end",

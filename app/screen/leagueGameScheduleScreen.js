@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   ImageBackground,
+  PanResponder,
   Pressable,
   ScrollView,
   Text,
@@ -21,6 +23,15 @@ import CommonHeader from "../components/CommonHeader";
 
 const INITIAL_VISIBLE_COUNT = 8;
 const LOAD_MORE_COUNT = 3;
+const SWIPE_START_THRESHOLD = 6;
+const SWIPE_THRESHOLD = 10;
+const TAB_TRANSITION_OFFSET = 22;
+const TAB_TRANSITION_DURATION = 220;
+const HORIZONTAL_SWIPE_MAX_ANGLE = 30;
+const MAX_VERTICAL_TO_HORIZONTAL_RATIO = Math.tan(
+  (HORIZONTAL_SWIPE_MAX_ANGLE * Math.PI) / 180,
+);
+const DRAG_FOLLOW_LIMIT = 42;
 const STADIUM_NAME = "수원 KT 위즈파크";
 const STADIUM_IMAGE_URI =
   "https://i.namu.wiki/i/s5el6DSDQjJetZbb2WxKe-H8PtDQ6dfeZuMSKUtyro-XpSYN-lY2F-baCLWr_IqPi6nTTNQpa5zjc18gyN5xX01x2hKrAn65EKGflZmbyF1C5-hjFB2Te6mPOGzUeimD3AwO-qVSNz_C8nQSgaaozA.webp";
@@ -205,6 +216,52 @@ const LeagueGameScheduleScreen = () => {
   const [games, setGames] = useState([]);
   const [activeTab, setActiveTab] = useState("FUTURE"); // 'PAST' or 'FUTURE'
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
+  const scheduleTranslateX = useRef(new Animated.Value(0)).current;
+  const scheduleOpacity = useRef(new Animated.Value(1)).current;
+  const swipeHandledRef = useRef(false);
+
+  const animateTabTransition = (direction) => {
+    scheduleTranslateX.setValue(direction * TAB_TRANSITION_OFFSET);
+    scheduleOpacity.setValue(0.78);
+
+    Animated.parallel([
+      Animated.timing(scheduleTranslateX, {
+        toValue: 0,
+        duration: TAB_TRANSITION_DURATION,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scheduleOpacity, {
+        toValue: 1,
+        duration: TAB_TRANSITION_DURATION,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const resetDragPosition = () => {
+    Animated.spring(scheduleTranslateX, {
+      toValue: 0,
+      useNativeDriver: true,
+      speed: 16,
+      bounciness: 4,
+    }).start();
+    Animated.timing(scheduleOpacity, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const switchTab = (nextTab, direction = 0) => {
+    if (activeTab === nextTab) {
+      resetDragPosition();
+      return;
+    }
+
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+    setActiveTab(nextTab);
+    animateTabTransition(direction || (nextTab === "FUTURE" ? -1 : 1));
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -311,6 +368,72 @@ const LeagueGameScheduleScreen = () => {
     );
   };
 
+  const tabSwipeResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+          Math.abs(gestureState.dx) > SWIPE_START_THRESHOLD &&
+          Math.abs(gestureState.dy) <=
+            Math.abs(gestureState.dx) * MAX_VERTICAL_TO_HORIZONTAL_RATIO,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dx) > SWIPE_START_THRESHOLD &&
+          Math.abs(gestureState.dy) <=
+            Math.abs(gestureState.dx) * MAX_VERTICAL_TO_HORIZONTAL_RATIO,
+        onPanResponderGrant: () => {
+          swipeHandledRef.current = false;
+          scheduleOpacity.setValue(0.97);
+        },
+        onPanResponderMove: (_, gestureState) => {
+          if (swipeHandledRef.current) {
+            return;
+          }
+
+          const nextTranslate = Math.max(
+            -DRAG_FOLLOW_LIMIT,
+            Math.min(DRAG_FOLLOW_LIMIT, gestureState.dx * 0.62),
+          );
+
+          scheduleTranslateX.setValue(nextTranslate);
+          const dragOpacity = 1 - Math.min(Math.abs(nextTranslate) / 220, 0.08);
+          scheduleOpacity.setValue(dragOpacity);
+
+          if (gestureState.dx <= -SWIPE_THRESHOLD) {
+            swipeHandledRef.current = true;
+            switchTab("FUTURE", -1);
+            return;
+          }
+
+          if (gestureState.dx >= SWIPE_THRESHOLD) {
+            swipeHandledRef.current = true;
+            switchTab("PAST", 1);
+          }
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (swipeHandledRef.current) {
+            swipeHandledRef.current = false;
+            return;
+          }
+
+          if (gestureState.dx <= -SWIPE_THRESHOLD) {
+            switchTab("FUTURE", -1);
+            return;
+          }
+
+          if (gestureState.dx >= SWIPE_THRESHOLD) {
+            switchTab("PAST", 1);
+            return;
+          }
+
+          resetDragPosition();
+        },
+        onPanResponderTerminate: () => {
+          swipeHandledRef.current = false;
+          resetDragPosition();
+        },
+      }),
+    [activeTab],
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <CommonHeader title="leagueGameScheduleScreen" />
@@ -387,10 +510,7 @@ const LeagueGameScheduleScreen = () => {
                 styles.tabButton,
                 activeTab === "PAST" && styles.activeTab,
               ]}
-              onPress={() => {
-                setActiveTab("PAST");
-                setVisibleCount(INITIAL_VISIBLE_COUNT);
-              }}
+              onPress={() => switchTab("PAST")}
             >
               <Text
                 style={[
@@ -406,10 +526,7 @@ const LeagueGameScheduleScreen = () => {
                 styles.tabButton,
                 activeTab === "FUTURE" && styles.activeTab,
               ]}
-              onPress={() => {
-                setActiveTab("FUTURE");
-                setVisibleCount(INITIAL_VISIBLE_COUNT);
-              }}
+              onPress={() => switchTab("FUTURE")}
             >
               <Text
                 style={[
@@ -422,82 +539,91 @@ const LeagueGameScheduleScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {loading ? (
-            <ActivityIndicator
-              size="large"
-              color="#4a7c59"
-              style={styles.loader}
-            />
-          ) : errorText ? (
-            <Text style={styles.errorText}>{errorText}</Text>
-          ) : visibleGames.length > 0 ? (
-            <>
-              <View style={styles.scheduleList}>
-                {visibleGames.map((game, index) => (
-                  <View
-                    key={game.matchDate.getTime().toString()}
-                    style={[
-                      styles.scheduleItem,
-                      activeTab === "FUTURE" &&
-                        index === 0 &&
-                        styles.scheduleItemHighlight,
-                    ]}
-                  >
-                    {/* 번호 + 경기 정보 가로 배치 */}
-                    <View style={styles.scheduleItemRow}>
-                      <View style={styles.scheduleIndexBadge}>
-                        <Text style={styles.scheduleIndexText}>
-                          {String(index + 1).padStart(2, "0")}
-                        </Text>
-                      </View>
-
-                      <View style={styles.scheduleMain}>
-                        <Text
-                          style={[
-                            styles.scheduleMatchText,
-                            activeTab === "FUTURE" &&
-                              index === 0 &&
-                              styles.scheduleMatchTextHighlight,
-                          ]}
-                        >
-                          {game.home} vs {game.away}
-                        </Text>
-                        <View style={styles.scheduleDateRow}>
-                          <Text style={styles.scheduleDateText}>
-                            {formatScheduleDate(game.matchDate)}
-                          </Text>
-                          {activeTab === "PAST" ? (
-                            <Text style={styles.scheduleScoreText}>
-                              {game.isScoreValid
-                                ? `${game.homeScore} 대 ${game.awayScore}`
-                                : "Bench-Clearing"}
+          <View {...tabSwipeResponder.panHandlers}>
+            <Animated.View
+              style={{
+                transform: [{ translateX: scheduleTranslateX }],
+                opacity: scheduleOpacity,
+              }}
+            >
+              {loading ? (
+                <ActivityIndicator
+                  size="large"
+                  color="#4a7c59"
+                  style={styles.loader}
+                />
+              ) : errorText ? (
+                <Text style={styles.errorText}>{errorText}</Text>
+              ) : visibleGames.length > 0 ? (
+                <>
+                  <View style={styles.scheduleList}>
+                    {visibleGames.map((game, index) => (
+                      <View
+                        key={game.matchDate.getTime().toString()}
+                        style={[
+                          styles.scheduleItem,
+                          activeTab === "FUTURE" &&
+                            index === 0 &&
+                            styles.scheduleItemHighlight,
+                        ]}
+                      >
+                        {/* 번호 + 경기 정보 가로 배치 */}
+                        <View style={styles.scheduleItemRow}>
+                          <View style={styles.scheduleIndexBadge}>
+                            <Text style={styles.scheduleIndexText}>
+                              {String(index + 1).padStart(2, "0")}
                             </Text>
-                          ) : null}
+                          </View>
+
+                          <View style={styles.scheduleMain}>
+                            <Text
+                              style={[
+                                styles.scheduleMatchText,
+                                activeTab === "FUTURE" &&
+                                  index === 0 &&
+                                  styles.scheduleMatchTextHighlight,
+                              ]}
+                            >
+                              {game.home} vs {game.away}
+                            </Text>
+                            <View style={styles.scheduleDateRow}>
+                              <Text style={styles.scheduleDateText}>
+                                {formatScheduleDate(game.matchDate)}
+                              </Text>
+                              {activeTab === "PAST" ? (
+                                <Text style={styles.scheduleScoreText}>
+                                  {game.isScoreValid
+                                    ? `${game.homeScore} 대 ${game.awayScore}`
+                                    : "우천 취소"}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </View>
                         </View>
                       </View>
-                    </View>
+                    ))}
                   </View>
-                ))}
-              </View>
 
-              {hasMoreGames ? (
-                <Pressable
-                  style={styles.loadMoreButton}
-                  onPress={handleLoadMore}
-                >
-                  <Text style={styles.loadMoreButtonText}>
-                    {MESSAGE_LOAD_MORE}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </>
-          ) : (
-            <Text style={styles.emptyText}>
-              {activeTab === "FUTURE"
-                ? MESSAGE_NO_UPCOMING
-                : "과거 경기 기록이 없습니다."}
-            </Text>
-          )}
+                  {hasMoreGames ? (
+                    <Pressable
+                      style={styles.loadMoreButton}
+                      onPress={handleLoadMore}
+                    >
+                      <Text style={styles.loadMoreButtonText}>
+                        {MESSAGE_LOAD_MORE}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </>
+              ) : (
+                <Text style={styles.emptyText}>
+                  {activeTab === "FUTURE"
+                    ? MESSAGE_NO_UPCOMING
+                    : "과거 경기 기록이 없습니다."}
+                </Text>
+              )}
+            </Animated.View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
