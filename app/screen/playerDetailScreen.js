@@ -222,7 +222,7 @@ const PlayerDetailScreen = ({ navigation, route }) => {
 <<<<<<< HEAD
       const pos = member.Primary_Position || "야구 선수";
       const issueString = reviewIssues && reviewIssues.length > 0 ? reviewIssues.join(" ") : "뛰어난 선수입니다.";
-      const promptInput = `선수 이름: ${seed}, 포지션: ${pos}, 선수 아바타: https://api.dicebear.com/9.x/adventurer/png?seed=${seed}, 특징: ${issueString}`;
+      const promptInput = `선수 이름: ${seed}, 선수 아바타: https://api.dicebear.com/9.x/adventurer/png?seed=${seed}, 특징: ${issueString}`;
       
       console.log(`${LOG_TAG} 1단계: Gemini 프롬프트 생성 요청 중... (Input: ${seed})`);
 =======
