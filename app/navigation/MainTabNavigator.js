@@ -156,7 +156,7 @@ const MainTabNavigator = ({ route }) => {
   return (
     <Tab.Navigator
       tabBar={(props) =>
-        isManager ? null : (
+        isManager ? (null) : (
           <CommonFooter {...props} Id={id} userPosition={position} />
         )
       }
@@ -197,7 +197,7 @@ const MainTabNavigator = ({ route }) => {
       <Tab.Screen
         name="PlayerDetail"
         component={ProfileStack}
-        initialParams={{ id }}
+        initialParams={{ id, loginId: id }}
       />
     </Tab.Navigator>
   );
