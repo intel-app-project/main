@@ -22,7 +22,11 @@ const Stack = createStackNavigator();
 // 각 탭별 스택 내비게이터
 const MyGameStack = ({ route }) => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="MyGameHome" component={MyGameScreen} initialParams={route.params} />
+    <Stack.Screen
+      name="MyGameHome"
+      component={MyGameScreen}
+      initialParams={route.params}
+    />
     <Stack.Screen name="Lineup" component={LineupScreen} />
     <Stack.Screen name="ManagerSchedule" component={ManagerScheduleScreen} />
     <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
@@ -34,9 +38,17 @@ const ScheduleStack = ({ route }) => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {position === "감독" ? (
-        <Stack.Screen name="DirectorSchedule" component={DirectorScheduleScreen} initialParams={{ id }} />
+        <Stack.Screen
+          name="DirectorSchedule"
+          component={DirectorScheduleScreen}
+          initialParams={{ id }}
+        />
       ) : (
-        <Stack.Screen name="PlayerSchedule" component={PlayerScheduleScreen} initialParams={{ id }} />
+        <Stack.Screen
+          name="PlayerSchedule"
+          component={PlayerScheduleScreen}
+          initialParams={{ id }}
+        />
       )}
       <Stack.Screen name="Lineup" component={LineupScreen} />
     </Stack.Navigator>
@@ -46,13 +58,13 @@ const ScheduleStack = ({ route }) => {
 const TeamStack = ({ route }) => {
   const { id, position } = route.params;
   const isDirector = position === "감독";
-  
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen 
-        name="TeamInfoHome" 
-        component={TeamInfoScreen} 
-        initialParams={{ id, isDirector }} 
+      <Stack.Screen
+        name="TeamInfoHome"
+        component={TeamInfoScreen}
+        initialParams={{ id, isDirector }}
       />
       <Stack.Screen name="PlayerDetail" component={PlayerDetailScreen} />
       <Stack.Screen name="BestMember" component={BestMemberScreen} />
@@ -62,7 +74,11 @@ const TeamStack = ({ route }) => {
 
 const LeagueStack = ({ route }) => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="LeagueGameScheduleHome" component={LeagueGameScheduleScreen} initialParams={route.params} />
+    <Stack.Screen
+      name="LeagueGameScheduleHome"
+      component={LeagueGameScheduleScreen}
+      initialParams={route.params}
+    />
   </Stack.Navigator>
 );
 
@@ -70,10 +86,10 @@ const ProfileStack = ({ route }) => {
   console.log("[ProfileStack] Params:", route.params);
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen 
-        name="PlayerDetailHome" 
-        component={PlayerDetailScreen} 
-        initialParams={route.params} 
+      <Stack.Screen
+        name="PlayerDetailHome"
+        component={PlayerDetailScreen}
+        initialParams={route.params}
       />
     </Stack.Navigator>
   );
@@ -95,9 +111,26 @@ const MainTabNavigator = ({ route }) => {
           .single();
 
         if (error) {
-          console.error("[MainTabNavigator] Fetch error:", error);
+          const { data: data2, error: error2 } = await supabase
+            .from("member")
+            .select("Primary_Position")
+            .eq("ID", id)
+            .single();
+
+          if (data2) {
+            console.log(
+              "[MainTabNavigator] Position found (ID):",
+              data2.Primary_Position,
+            );
+            setPosition(data2.Primary_Position);
+          } else {
+            console.error("[MainTabNavigator] Fetch error:", error);
+          }
         } else if (data) {
-          console.log("[MainTabNavigator] Position found:", data.Primary_Position);
+          console.log(
+            "[MainTabNavigator] Position found:",
+            data.Primary_Position,
+          );
           setPosition(data.Primary_Position);
         }
       } catch (err) {
@@ -122,24 +155,50 @@ const MainTabNavigator = ({ route }) => {
 
   return (
     <Tab.Navigator
-      tabBar={(props) => 
-        isManager ? null : <CommonFooter {...props} Id={id} userPosition={position} />
+      tabBar={(props) =>
+        isManager ? null : (
+          <CommonFooter {...props} Id={id} userPosition={position} />
+        )
       }
       screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="MyGame" component={MyGameStack} initialParams={{ id }} />
-      
+      <Tab.Screen
+        name="MyGame"
+        component={MyGameStack}
+        initialParams={{ id }}
+      />
+
       {isDirector ? (
-        <Tab.Screen name="DirectorSchedule" component={ScheduleStack} initialParams={{ id, position }} />
+        <Tab.Screen
+          name="DirectorSchedule"
+          component={ScheduleStack}
+          initialParams={{ id, position }}
+        />
       ) : (
         <>
-          <Tab.Screen name="PlayerSchedule" component={ScheduleStack} initialParams={{ id, position }} />
-          <Tab.Screen name="LeagueGameSchedule" component={LeagueStack} initialParams={{ id }} />
+          <Tab.Screen
+            name="PlayerSchedule"
+            component={ScheduleStack}
+            initialParams={{ id, position }}
+          />
+          <Tab.Screen
+            name="LeagueGameSchedule"
+            component={LeagueStack}
+            initialParams={{ id }}
+          />
         </>
       )}
 
-      <Tab.Screen name="TeamInfo" component={TeamStack} initialParams={{ id, position }} />
-      <Tab.Screen name="PlayerDetail" component={ProfileStack} initialParams={{ id }} />
+      <Tab.Screen
+        name="TeamInfo"
+        component={TeamStack}
+        initialParams={{ id, position }}
+      />
+      <Tab.Screen
+        name="PlayerDetail"
+        component={ProfileStack}
+        initialParams={{ id }}
+      />
     </Tab.Navigator>
   );
 };
