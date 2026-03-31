@@ -16,6 +16,7 @@ import {
 } from "../constants/scheduleConstants";
 import { styles } from "./myGameScreen.styles";
 import CommonHeader from "../components/CommonHeader";
+import { useEffect, useState } from "react";
 
 const STADIUM_NAME = "Suwon KT Wiz Park";
 const STADIUM_IMAGE_URI =
@@ -83,6 +84,7 @@ const formatMonthDay = (date) => {
 };
 
 const MyGameScreen = ({ route }) => {
+  const navigation = useNavigation();
   const { id, targetDate } = route.params;
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
@@ -380,91 +382,91 @@ const MyGameScreen = ({ route }) => {
                     <View style={styles.posP}>
                       <PositionSlot
                         pos="P"
-                        name={matchData.defense?.P}
-                        highlight={
-                          matchData.defense?.P === matchData.playerName
-                        }
+                        name={matchData.defense?.P?.name}
+                        idValue={matchData.defense?.P?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.P?.id === id}
                       />
                     </View>
                     <View style={styles.posC}>
                       <PositionSlot
                         pos="C"
-                        name={matchData.defense?.C}
-                        highlight={
-                          matchData.defense?.C === matchData.playerName
-                        }
+                        name={matchData.defense?.C?.name}
+                        idValue={matchData.defense?.C?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.C?.id === id}
                       />
                     </View>
                     <View style={styles.pos1B}>
                       <PositionSlot
                         pos="1B"
-                        name={matchData.defense?.["1B"]}
-                        highlight={
-                          matchData.defense?.["1B"] === matchData.playerName
-                        }
+                        name={matchData.defense?.["1B"]?.name}
+                        idValue={matchData.defense?.["1B"]?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.["1B"]?.id === id}
                       />
                     </View>
                     <View style={styles.pos2B}>
                       <PositionSlot
                         pos="2B"
-                        name={matchData.defense?.["2B"]}
-                        highlight={
-                          matchData.defense?.["2B"] === matchData.playerName
-                        }
+                        name={matchData.defense?.["2B"]?.name}
+                        idValue={matchData.defense?.["2B"]?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.["2B"]?.id === id}
                       />
                     </View>
                     <View style={styles.pos3B}>
                       <PositionSlot
                         pos="3B"
-                        name={matchData.defense?.["3B"]}
-                        highlight={
-                          matchData.defense?.["3B"] === matchData.playerName
-                        }
+                        name={matchData.defense?.["3B"]?.name}
+                        idValue={matchData.defense?.["3B"]?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.["3B"]?.id === id}
                       />
                     </View>
                     <View style={styles.posSS}>
                       <PositionSlot
                         pos="SS"
-                        name={matchData.defense?.SS}
-                        highlight={
-                          matchData.defense?.SS === matchData.playerName
-                        }
+                        name={matchData.defense?.SS?.name}
+                        idValue={matchData.defense?.SS?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.SS?.id === id}
                       />
                     </View>
                     <View style={styles.posLF}>
                       <PositionSlot
                         pos="LF"
-                        name={matchData.defense?.LF}
-                        highlight={
-                          matchData.defense?.LF === matchData.playerName
-                        }
+                        name={matchData.defense?.LF?.name}
+                        idValue={matchData.defense?.LF?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.LF?.id === id}
                       />
                     </View>
                     <View style={styles.posCF}>
                       <PositionSlot
                         pos="CF"
-                        name={matchData.defense?.CF}
-                        highlight={
-                          matchData.defense?.CF === matchData.playerName
-                        }
+                        name={matchData.defense?.CF?.name}
+                        idValue={matchData.defense?.CF?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.CF?.id === id}
                       />
                     </View>
                     <View style={styles.posRF}>
                       <PositionSlot
                         pos="RF"
-                        name={matchData.defense?.RF}
-                        highlight={
-                          matchData.defense?.RF === matchData.playerName
-                        }
+                        name={matchData.defense?.RF?.name}
+                        idValue={matchData.defense?.RF?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.RF?.id === id}
                       />
                     </View>
                     <View style={styles.posDH}>
                       <PositionSlot
                         pos="DH"
-                        name={matchData.defense?.DH}
-                        highlight={
-                          matchData.defense?.DH === matchData.playerName
-                        }
+                        name={matchData.defense?.DH?.name}
+                        idValue={matchData.defense?.DH?.id}
+                        loginId={id}
+                        highlight={matchData.defense?.DH?.id === id}
                       />
                     </View>
                   </View>
@@ -493,7 +495,16 @@ const MyGameScreen = ({ route }) => {
                 {matchData.roster.length > 0 ? (
                   <View style={styles.rosterGrid}>
                     {matchData.roster.map((item) => (
-                      <View key={item.id} style={styles.playerCard}>
+                      <TouchableOpacity
+                        key={item.id}
+                        style={styles.playerCard}
+                        onPress={() =>
+                          navigation.navigate("PlayerDetail", {
+                            id: item.id,
+                            loginId: id,
+                          })
+                        }
+                      >
                         <View style={styles.playerAvatarContainer}>
                           <SvgUri
                             uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${item.name}`}
@@ -507,7 +518,7 @@ const MyGameScreen = ({ route }) => {
                         <Text style={styles.playerMeta} numberOfLines={1}>
                           {item.meta}
                         </Text>
-                      </View>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 ) : (

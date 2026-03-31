@@ -54,22 +54,28 @@ const LoginScreen = ({ navigation }) => {
       const position = data.Primary_Position;
 
       if (position === "감독") {
-        navigation.navigate("MainTab", { 
-          id: data.Id,
-          screen: "MyGame", 
-          params: { id: data.Id } 
+        navigation.reset({
+          index: 0,
+          routes: [{ 
+            name: "MainTab", 
+            params: { id: data.Id, screen: "MyGame", params: { id: data.Id } } 
+          }],
         });
       } else if (position === "기록원") {
-        navigation.navigate("MainTab", { 
-          id: data.Id,
-          screen: "MyGame", 
-          params: { screen: "ManagerSchedule", params: { id: data.Id } } 
+        navigation.reset({
+          index: 0,
+          routes: [{ 
+            name: "MainTab", 
+            params: { id: data.Id, screen: "MyGame", params: { screen: "ManagerSchedule", params: { id: data.Id } } } 
+          }],
         });
       } else {
-        navigation.navigate("MainTab", { 
-          id: data.Id,
-          screen: "MyGame", 
-          params: { id: data.Id } 
+        navigation.reset({
+          index: 0,
+          routes: [{ 
+            name: "MainTab", 
+            params: { id: data.Id, screen: "MyGame", params: { id: data.Id } } 
+          }],
         });
       }
     } catch (err) {
@@ -125,7 +131,13 @@ const LoginScreen = ({ navigation }) => {
 
         <TouchableOpacity 
           style={styles.button}
-          onPress={() => navigation.navigate("MainTab", { id: selectedId, screen: "MyGame", params: { id: selectedId } })}
+          onPress={() => navigation.reset({
+            index: 0,
+            routes: [{ 
+              name: "MainTab", 
+              params: { id: selectedId, screen: "MyGame", params: { id: selectedId } } 
+            }],
+          })}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Quick Login</Text>
@@ -173,10 +185,16 @@ const LoginScreen = ({ navigation }) => {
         </Modal>
         <TouchableOpacity 
           style={styles.button}
-          onPress={() => navigation.navigate("MainTab", { 
-            id: 84, // 매니저 로그인의 경우 기본 ID 설정 (필요시 수정)
-            screen: "MyGame", 
-            params: { screen: "ManagerSchedule" } 
+          onPress={() => navigation.reset({
+            index: 0,
+            routes: [{ 
+              name: "MainTab", 
+              params: { 
+                id: 84, 
+                screen: "MyGame", 
+                params: { screen: "ManagerSchedule" } 
+              } 
+            }],
           })}
           activeOpacity={0.8}
         >

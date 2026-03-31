@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -92,7 +92,19 @@ const TeamInfoScreen = ({ route }) => {
     const displayName = member ? member.Name : "---";
 
     return (
-      <View style={styles.slotStadium}>
+      <TouchableOpacity 
+        style={styles.slotStadium}
+        onPress={() => {
+          if (idValue) {
+            navigation.navigate("PlayerDetail", {
+              id: idValue,
+              loginId: id,
+              isDirector,
+            });
+          }
+        }}
+        activeOpacity={0.7}
+      >
         {member && (
           <View style={styles.slotAvatarContainer}>
             <SvgUri
@@ -108,7 +120,7 @@ const TeamInfoScreen = ({ route }) => {
           </Text>
           <Text style={styles.slotPosStadium}>{pos}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -137,9 +149,18 @@ const TeamInfoScreen = ({ route }) => {
         <View style={styles.teamInfoSection} >
           <View style={styles.teamInfoCard}>
             <View style={styles.teamLogoPlaceholder}>
-              <Text style={styles.teamLogoText}>
-                {teamInfo?.name ? teamInfo.name[0] : "T"}
-              </Text>
+              {teamInfo?.emblem ? (
+                <SvgUri
+                  uri={teamInfo.emblem}
+                  width={50}
+                  height={50}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              ) : (
+                <Text style={styles.teamLogoText}>
+                  {teamInfo?.name ? teamInfo.name[0] : "T"}
+                </Text>
+              )}
             </View>
             <View style={styles.teamTextContainer}>
               <Text style={styles.teamName}>
@@ -237,6 +258,7 @@ const TeamInfoScreen = ({ route }) => {
                     onPress={() =>
                       navigation.navigate("PlayerDetail", {
                         id: member.Id,
+                        loginId: id,
                         isDirector,
                       })
                     }

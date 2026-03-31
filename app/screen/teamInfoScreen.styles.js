@@ -41,13 +41,15 @@ export const styles = StyleSheet.create({
     elevation: 8,
   },
   teamLogoPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 20,
+    overflow: "hidden",
+    padding: 10,
   },
   teamLogoText: {
     fontSize: 28,
