@@ -169,8 +169,9 @@ const PlayerDetailScreen = ({navigation, route}) => {
       setPrImage(null);
       
       const seed = member.Name;
+      const pos = member.Primary_Position || "야구 선수";
       const issueString = reviewIssues && reviewIssues.length > 0 ? reviewIssues.join(" ") : "뛰어난 선수입니다.";
-      const promptInput = `선수 이름: ${seed}, 선수 아바타: https://api.dicebear.com/9.x/adventurer/png?seed=${seed}, 특징: ${issueString}`;
+      const promptInput = `선수 이름: ${seed}, 포지션: ${pos}, 선수 아바타: https://api.dicebear.com/9.x/adventurer/png?seed=${seed}, 특징: ${issueString}`;
       
       console.log(`${LOG_TAG} 1단계: Gemini 프롬프트 생성 요청 중... (Input: ${seed})`);
       const geminiUrl = `${API_BASE_URL}/api/gemini?prompt=${encodeURIComponent(promptInput)}`;
@@ -221,9 +222,15 @@ const PlayerDetailScreen = ({navigation, route}) => {
             data: { Picture: bananaData.result } 
           }),
         });
-        console.log(`${LOG_TAG} DB 저장 완료 (Status: ${dbRes.status})`);
+        
+        if (dbRes.ok) {
+          console.log(`${LOG_TAG} DB 저장 성공 (Status: ${dbRes.status})`);
+        } else {
+          const errBody = await dbRes.text();
+          console.error(`${LOG_TAG} DB 저장 실패 (Status: ${dbRes.status}):`, errBody);
+        }
       } catch (dbError) {
-        console.error(`${LOG_TAG} DB 저장 중 무시 가능한 오류:`, dbError);
+        console.error(`${LOG_TAG} DB 저장 통신 오류:`, dbError);
       }
       
       console.log(`${LOG_TAG} 모든 과정 성공적으로 완료!`);

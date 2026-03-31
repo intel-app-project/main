@@ -110,6 +110,10 @@ class ScheduleCreate(BaseModel):
     home: int
     away: int
 
+class MemberUpdate(BaseModel):
+    id: int
+    data: dict
+
 @app.post("/api/schedule")
 def create_schedule(schedule: ScheduleCreate):
     try:
@@ -193,6 +197,15 @@ def get_Member():
     # Supabase 테이블 이름
     response = supabase.table("member").select("*").execute()
     return response.data
+
+@app.post("/api/member")
+def update_member(body: MemberUpdate):
+    try:
+        # data 내의 필드들을 업데이트
+        response = supabase.table("member").update(body.data).eq("Id", body.id).execute()
+        return {"message": "회원 정보가 성공적으로 업데이트되었습니다.", "data": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/team")
@@ -350,7 +363,8 @@ async def ask_gemini(prompt: str):
             "박진감 넘치는 경기 장면을 묘사하는 고퀄리티 Imagen 프롬프트를 작성해줘.\n\n"
             "프롬프트 구성 가이드:\n"
             "1. Subject: 이미지 속 아바타의 외형 특징(머리 모양, 색상, 얼굴형 등)을 그대로 가진 실제 인간 야구 선수.\n"
-            "2. Action: 배트를 힘껏 휘두르거나 역동적인 투구 폼을 잡는 등 실제 경기 중인 모습.\n"
+            "2. Action: 입력받은 포지션(예: 투수, 포수, 유격수 등)에 걸맞는 역동적인 동작. "
+            "예를 들어 투수라면 강력한 투구 폼, 포수라면 홈 플레이트에서의 태그 동작이나 투구 포착, 타자라면 배트를 휘두르는 폴로 스루 등을 묘사할 것.\n"
             "3. Medium/Style: Stunning cinematic photography, hyper-realistic, 8k resolution.\n"
             "4. Setting: 대형 야구 스타디움, 열광하는 관중, 조명탄이 터지는 역동적인 분위기.\n"
             "5. Lighting: Dramatic stadium floodlights, lens flare, high contrast.\n"
@@ -470,26 +484,27 @@ async def generate_baseball_card(payload: dict):
         draw.text((50, 1030), f"#{num} {name}", font=font_title, fill=(255, 255, 255, 255))
         draw.text((50, 1130), f"{team_name} | {pos}", font=font_sub, fill=(230, 230, 230, 255))
         
-        # 6. 성적 지표 (3개 컬럼)
-        draw.line([50, 1190, 950, 1190], fill=(255, 255, 255, 80), width=2)
-        
-        if active_mode == "HITTER":
-            stat_items = [
-                ("타율 (AVG)", stats.get("avg", ".000")),
-                ("홈런 (HR)", str(stats.get("hr", "0"))),
-                ("타점 (RBI)", str(stats.get("rbi", "0")))
-            ]
-        else:
-            stat_items = [
-                ("방어율 (ERA)", stats.get("era", "0.00")),
-                ("탈삼진 (K)", str(stats.get("kSum", "0"))),
-                ("이닝 (IP)", stats.get("ip", "0.0"))
-            ]
+        # 6. 성적 지표 (3개 컬럼) - 감독이 아닐 때만 표시
+        if pos != "감독":
+            draw.line([50, 1190, 950, 1190], fill=(255, 255, 255, 80), width=2)
             
-        for i, (label, val) in enumerate(stat_items):
-            x_pos = 100 + (i * 300)
-            draw.text((x_pos, 1220), label, font=font_stat_label, fill=(200, 200, 200, 255))
-            draw.text((x_pos, 1270), val, font=font_stat_val, fill=(255, 255, 255, 255))
+            if active_mode == "HITTER":
+                stat_items = [
+                    ("타율 (AVG)", stats.get("avg", ".000")),
+                    ("홈런 (HR)", str(stats.get("hr", "0"))),
+                    ("타점 (RBI)", str(stats.get("rbi", "0")))
+                ]
+            else:
+                stat_items = [
+                    ("방어율 (ERA)", stats.get("era", "0.00")),
+                    ("탈삼진 (K)", str(stats.get("kSum", "0"))),
+                    ("이닝 (IP)", stats.get("ip", "0.0"))
+                ]
+                
+            for i, (label, val) in enumerate(stat_items):
+                x_pos = 100 + (i * 300)
+                draw.text((x_pos, 1220), label, font=font_stat_label, fill=(200, 200, 200, 255))
+                draw.text((x_pos, 1270), val, font=font_stat_val, fill=(255, 255, 255, 255))
             
         # 7. 꾸미기 요소 (상단 뱃지)
         badge_text = "Baseball Team System"
