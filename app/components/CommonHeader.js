@@ -9,7 +9,10 @@ const CommonHeader = ({ title }) => {
       <Text style={styles.topBarTitle}>{title}</Text>
       {title === "playerDetailScreen" && <TouchableOpacity
         style={styles.topBarTitle}
-        onPress={() => navigation.popToTop()}
+        onPress={() => navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        })}
       >
         <Text style={styles.topBarTitle}>로그아웃</Text>
       </TouchableOpacity>}
