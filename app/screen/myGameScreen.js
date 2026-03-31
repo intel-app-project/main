@@ -1,7 +1,14 @@
-import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import {
+  ActivityIndicator,
+  ImageBackground,
+  ScrollView,
+  TouchableOpacity,
+  Text,
+  View,
+} from "react-native";
 import { SvgUri } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
   MEMBER_API_ENDPOINT,
@@ -12,44 +19,69 @@ import { styles } from "./myGameScreen.styles";
 import CommonHeader from "../components/CommonHeader";
 import { useEffect, useState } from "react";
 
-const PositionSlot = ({ pos, name, idValue, loginId, highlight }) => {
-  const navigation = useNavigation();
-  return (
-    <TouchableOpacity 
-      style={[styles.slotStadium, highlight && styles.slotHighlightStadium]}
-      onPress={() => {
-        if (idValue) {
-          navigation.navigate("PlayerDetail", {
-            id: idValue,
-            loginId: loginId
-          });
-        }
-      }}
-      disabled={!idValue}
-    >
-      {name && (
-        <View style={styles.slotAvatarContainer}>
-          <SvgUri
-            uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${name}`}
-            width="100%"
-            height="100%"
-          />
-        </View>
-      )}
-      <View style={styles.slotBottomRow}>
-        <Text
-          style={[
-            styles.slotNameStadium,
-            highlight && styles.slotNameHighlightStadium,
-          ]}
-          numberOfLines={1}
-        >
-          {name || "---"}
-        </Text>
-        <Text style={styles.slotPosStadium}>{pos}</Text>
+const STADIUM_NAME = "수원 KT 위즈파크";
+const STADIUM_IMAGE_URI =
+  "https://i.namu.wiki/i/s5el6DSDQjJetZbb2WxKe-H8PtDQ6dfeZuMSKUtyro-XpSYN-lY2F-baCLWr_IqPi6nTTNQpa5zjc18gyN5xX01x2hKrAn65EKGflZmbyF1C5-hjFB2Te6mPOGzUeimD3AwO-qVSNz_C8nQSgaaozA.webp";
+
+const PositionSlot = ({ pos, name, highlight }) => (
+  <View style={[styles.slotStadium, highlight && styles.slotHighlightStadium]}>
+    {name ? (
+      <View style={styles.slotAvatarContainer}>
+        <SvgUri
+          uri={`https://api.dicebear.com/9.x/adventurer/svg?seed=${name}`}
+          width="100%"
+          height="100%"
+        />
       </View>
-    </TouchableOpacity>
-  );
+    ) : null}
+    <View style={styles.slotBottomRow}>
+      <Text
+        style={[
+          styles.slotNameStadium,
+          highlight && styles.slotNameHighlightStadium,
+        ]}
+        numberOfLines={1}
+      >
+        {name || "---"}
+      </Text>
+      <Text style={styles.slotPosStadium}>{pos}</Text>
+    </View>
+  </View>
+);
+
+const parseDate = (rawDate) => {
+  if (!rawDate) {
+    return null;
+  }
+
+  if (typeof rawDate === "string" && /^\d{8}$/.test(rawDate.trim())) {
+    return new Date(
+      Number(rawDate.slice(0, 4)),
+      Number(rawDate.slice(4, 6)) - 1,
+      Number(rawDate.slice(6, 8)),
+    );
+  }
+
+  const parsed = new Date(rawDate);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const parseJson = (value) => {
+  try {
+    return typeof value === "string" ? JSON.parse(value || "{}") : value || {};
+  } catch {
+    return {};
+  }
+};
+
+const formatMonthDay = (date) => {
+  if (!date) {
+    return "";
+  }
+
+  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
 };
 
 const MyGameScreen = ({ route }) => {
@@ -58,6 +90,7 @@ const MyGameScreen = ({ route }) => {
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [matchData, setMatchData] = useState(null);
+  const [nearestGame, setNearestGame] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -67,23 +100,43 @@ const MyGameScreen = ({ route }) => {
         setLoading(true);
         setErrorText("");
 
+        if (id === undefined || id === null) {
+          throw new Error("Missing member id.");
+        }
+
         const [scheduleRes, teamRes, membersRes] = await Promise.all([
           fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`),
           fetch(`${API_BASE_URL}${TEAM_API_ENDPOINT}`),
           fetch(`${API_BASE_URL}${MEMBER_API_ENDPOINT}`),
         ]);
 
-        if (!scheduleRes.ok)
+        if (!scheduleRes.ok) {
           throw new Error(`schedule API error: ${scheduleRes.status}`);
-        if (!teamRes.ok) throw new Error(`team API error: ${teamRes.status}`);
-        if (!membersRes.ok)
+        }
+        if (!teamRes.ok) {
+          throw new Error(`team API error: ${teamRes.status}`);
+        }
+        if (!membersRes.ok) {
           throw new Error(`member API error: ${membersRes.status}`);
+        }
 
         const schedules = await scheduleRes.json();
         const teams = await teamRes.json();
         const members = await membersRes.json();
 
-        const member = members.find((m) => m?.Id === id);
+        const member = (members || []).find((item) => item?.Id === id);
+        if (!member) {
+          throw new Error("Member not found.");
+        }
+
+        const teamNameById = {};
+        (teams || []).forEach((team) => {
+          const teamId = team?.id ?? team?.Id;
+          const teamName = team?.name ?? team?.Name;
+          if (teamId !== undefined && teamId !== null && teamName) {
+            teamNameById[String(teamId)] = teamName;
+          }
+        });
 
         const today = new Date();
         const startToday = new Date(
@@ -92,37 +145,32 @@ const MyGameScreen = ({ route }) => {
           today.getDate(),
         ).getTime();
 
-        const parseDate = (d) =>
-          d ? new Date(d.slice(0, 4), d.slice(4, 6) - 1, d.slice(6, 8)) : null;
-
-        const selected = schedules.find((row) => {
+        const selected = (schedules || []).find((row) => {
           if (row?.deleted_at) return false;
-          if (targetDate && row.date === targetDate) return true;
+          if (targetDate && row?.date === targetDate) return true;
 
-          const rowDate = parseDate(row.date);
+          const rowDate = parseDate(row?.date);
           return (
             rowDate &&
             rowDate.getTime() >= startToday &&
-            (row.home === member.Team || row.away === member.Team)
+            (row?.home === member?.Team || row?.away === member?.Team)
           );
         });
 
-        const homeTeamName = teams.find((t) => t.id === selected?.home)?.name;
-        const awayTeamName = teams.find((t) => t.id === selected?.away)?.name;
+        const upcoming = (schedules || [])
+          .filter((row) => {
+            if (row?.deleted_at) return false;
+            const rowDate = parseDate(row?.date);
+            return rowDate && rowDate.getTime() >= startToday;
+          })
+          .sort((a, b) =>
+            String(a?.date || "").localeCompare(String(b?.date || "")),
+          )[0];
 
         const matchDate = parseDate(selected?.date);
-
-        const parseJson = (j) => {
-          try {
-            return typeof j === "string" ? JSON.parse(j || "{}") : j || {};
-          } catch {
-            return {};
-          }
-        };
-
         const isHome = selected?.home === member?.Team;
-        const rawLineupData = isHome 
-          ? selected?.home_lineup 
+        const rawLineupData = isHome
+          ? selected?.home_lineup
           : selected?.away_lineup;
 
         let lineup = parseJson(rawLineupData);
@@ -138,62 +186,89 @@ const MyGameScreen = ({ route }) => {
         );
 
         const roster = (members || [])
-          .filter((m) => m.Team === member.Team && currentMemberMap[m.Id])
-          .map((m) => ({
-            id: m.Id,
-            name: m.Name,
-            meta: `#${m.Num} · ${m.Primary_Position}`,
+          .filter(
+            (item) => item?.Team === member?.Team && currentMemberMap[item?.Id],
+          )
+          .map((item) => ({
+            id: item.Id,
+            name: item.Name,
+            meta: `#${item.Num} ${item.Primary_Position}`,
           }));
 
         roster.sort((a, b) => a.name.localeCompare(b.name, "ko"));
 
-        const getNameById = (mId) => {
-          if (!mId) return null;
-          const mem = (members || []).find(m => String(m.Id) === String(mId));
-          return mem?.Name || null;
+        const getNameById = (memberId) => {
+          if (!memberId) return null;
+          const found = (members || []).find(
+            (item) => String(item.Id) === String(memberId),
+          );
+          return found?.Name || null;
         };
 
-        const defensePlayers = {};
-        if (lineup.defense) {
-          Object.keys(lineup.defense).forEach((pos) => {
-            if (pos !== "BENCH") {
-              const mId = lineup.defense[pos];
-              defensePlayers[pos] = {
-                name: getNameById(mId),
-                id: mId
-              };
-            }
-          });
-        }
+        const defenseNames = {};
+        Object.keys(lineup.defense || {}).forEach((pos) => {
+          if (pos !== "BENCH") {
+            const memberId = lineup.defense[pos];
+            defenseNames[pos] = {
+              id: memberId ? Number(memberId) : null,
+              name: getNameById(memberId),
+            };
+          }
+        });
 
         const benchNames = (lineup.defense?.BENCH || [])
-          .map((id) => getNameById(id))
-          .filter((n) => n);
+          .map((memberId) => getNameById(memberId))
+          .filter(Boolean);
 
         if (mounted) {
-          setMatchData({
-            dateText: matchDate
-              ? `${matchDate.getMonth() + 1}월 ${matchDate.getDate()}일`
-              : String(selected?.date),
-            timeText: "12:00",
-            homeTeamName: homeTeamName,
-            awayTeamName: awayTeamName,
-            stadiumName: "수원 KT 위즈파크",
-            isHome: selected?.home === member?.Team,
-            playerName: member.Name,
-            defense: defensePlayers,
-            bench: benchNames,
-            roster,
-          });
+          setNearestGame(
+            upcoming
+              ? {
+                  home:
+                    teamNameById[String(upcoming.home)] ||
+                    `TEAM ${upcoming.home ?? ""}`,
+                  away:
+                    teamNameById[String(upcoming.away)] ||
+                    `TEAM ${upcoming.away ?? ""}`,
+                  dateText: formatMonthDay(parseDate(upcoming.date)),
+                }
+              : null,
+          );
+
+          setMatchData(
+            selected
+              ? {
+                  dateText: matchDate
+                    ? formatMonthDay(matchDate)
+                    : String(selected?.date),
+                  timeText: "12:00",
+                  homeTeamName:
+                    teamNameById[String(selected?.home)] ||
+                    `TEAM ${selected?.home ?? ""}`,
+                  awayTeamName:
+                    teamNameById[String(selected?.away)] ||
+                    `TEAM ${selected?.away ?? ""}`,
+                  stadiumName: STADIUM_NAME,
+                  isHome,
+                  playerName: member.Name,
+                  defense: defenseNames,
+                  bench: benchNames,
+                  roster,
+                }
+              : null,
+          );
         }
       } catch (error) {
         console.error("[MyGameScreen] load failed", error);
         if (mounted) {
+          setNearestGame(null);
           setMatchData(null);
-          setErrorText(error.message || "내 경기 정보를 불러오지 못했습니다.");
+          setErrorText(error.message || "Failed to load my game data.");
         }
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -211,9 +286,7 @@ const MyGameScreen = ({ route }) => {
       {loading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color="#4a7c59" />
-          <Text style={styles.loadingText}>
-            내 경기 정보를 불러오는 중입니다.
-          </Text>
+          <Text style={styles.loadingText}>Loading match data.</Text>
         </View>
       ) : (
         <ScrollView
@@ -221,6 +294,41 @@ const MyGameScreen = ({ route }) => {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.heroCard}>
+            <Text style={styles.heroEyebrow}>STADIUM</Text>
+            <Text style={styles.heroTitle}>리그 구장</Text>
+
+            <ImageBackground
+              source={{ uri: STADIUM_IMAGE_URI }}
+              style={styles.heroImageSlot}
+              imageStyle={styles.heroImage}
+            >
+              <View style={styles.heroImageOverlay} />
+              <View style={styles.heroBottomLabel}>
+                <Text style={styles.heroBottomLabelText}>{STADIUM_NAME}</Text>
+              </View>
+            </ImageBackground>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>NEXT MATCH</Text>
+            <Text style={styles.cardTitle}>이번 경기</Text>
+
+            {nearestGame ? (
+              <View style={styles.nearestCard}>
+                <Text style={styles.nearestMatchText}>
+                  {nearestGame.home} <Text style={styles.vsText}>vs</Text>{" "}
+                  {nearestGame.away}
+                </Text>
+                <Text style={styles.nearestDateText}>
+                  {nearestGame.dateText}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>No upcoming match.</Text>
+            )}
+          </View>
+
           {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
 
           {matchData ? (
@@ -233,21 +341,21 @@ const MyGameScreen = ({ route }) => {
 
                 <View style={styles.matchMetaBlock}>
                   <View style={styles.metaRow}>
-                    <Text style={styles.metaLabel}>경기 일정</Text>
+                    <Text style={styles.metaLabel}>Date</Text>
                     <Text style={styles.metaValue}>{matchData.dateText}</Text>
                   </View>
                   <View style={styles.metaRow}>
-                    <Text style={styles.metaLabel}>시작 시간</Text>
+                    <Text style={styles.metaLabel}>Start Time</Text>
                     <Text style={styles.metaValue}>{matchData.timeText}</Text>
                   </View>
                   <View style={styles.metaRow}>
-                    <Text style={styles.metaLabel}>구분</Text>
+                    <Text style={styles.metaLabel}>Type</Text>
                     <Text style={styles.metaValue}>
-                      {matchData.isHome ? "홈 경기" : "원정 경기"}
+                      {matchData.isHome ? "Home" : "Away"}
                     </Text>
                   </View>
                   <View style={styles.metaRow}>
-                    <Text style={styles.metaLabel}>경기장</Text>
+                    <Text style={styles.metaLabel}>Stadium</Text>
                     <Text style={styles.metaValue}>
                       {matchData.stadiumName}
                     </Text>
@@ -255,7 +363,6 @@ const MyGameScreen = ({ route }) => {
                 </View>
               </View>
 
-              {/* 수비 라인업 영역 (teamInfo와 동일한 큰 틀 적용) */}
               <View style={styles.fieldSection}>
                 <View style={styles.fieldCard}>
                   <View style={styles.sectionHeader}>
@@ -266,7 +373,6 @@ const MyGameScreen = ({ route }) => {
                   </View>
 
                   <View style={styles.fieldContainer}>
-                    {/* 야구장 배경 요소 유지 */}
                     <View style={styles.stadiumFan} />
                     <View style={styles.infieldDirtSemi} />
                     <View style={styles.diamondBaseLines} />
@@ -278,7 +384,6 @@ const MyGameScreen = ({ route }) => {
                       <View style={styles.moundPlate} />
                     </View>
 
-                    {/* 포지션 배치 (teamInfo와 동일한 위치 적용) */}
                     <View style={styles.posP}>
                       <PositionSlot
                         pos="P"
@@ -371,7 +476,6 @@ const MyGameScreen = ({ route }) => {
                     </View>
                   </View>
 
-                  {/* 벤치 섹션 */}
                   <View
                     style={[
                       styles.sectionBlock,
@@ -384,9 +488,7 @@ const MyGameScreen = ({ route }) => {
                         {matchData.bench.join(", ")}
                       </Text>
                     ) : (
-                      <Text style={styles.emptyText}>
-                        등록된 벤치 선수가 없습니다.
-                      </Text>
+                      <Text style={styles.emptyText}>No bench players.</Text>
                     )}
                   </View>
                 </View>
@@ -398,10 +500,15 @@ const MyGameScreen = ({ route }) => {
                 {matchData.roster.length > 0 ? (
                   <View style={styles.rosterGrid}>
                     {matchData.roster.map((item) => (
-                      <TouchableOpacity 
-                        key={item.id} 
+                      <TouchableOpacity
+                        key={item.id}
                         style={styles.playerCard}
-                        onPress={() => navigation.navigate("PlayerDetail", { id: item.id, loginId: id })}
+                        onPress={() =>
+                          navigation.navigate("PlayerDetail", {
+                            id: item.id,
+                            loginId: id,
+                          })
+                        }
                       >
                         <View style={styles.playerAvatarContainer}>
                           <SvgUri
@@ -420,13 +527,15 @@ const MyGameScreen = ({ route }) => {
                     ))}
                   </View>
                 ) : (
-                  <Text style={styles.emptyText}>
-                    불러올 선수 명단이 없습니다.
-                  </Text>
+                  <Text style={styles.emptyText}>No roster data.</Text>
                 )}
               </View>
             </>
-          ) : null}
+          ) : (
+            <View style={styles.card}>
+              <Text style={styles.emptyText}>No match selected.</Text>
+            </View>
+          )}
         </ScrollView>
       )}
     </SafeAreaView>

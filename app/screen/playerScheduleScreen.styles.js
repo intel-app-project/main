@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
   },
   calendarSection: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 10,
     paddingBottom: 8,
   },
   listScroll: {
@@ -18,11 +18,12 @@ export const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 110,
   },
   card: {
     backgroundColor: "#f7f2ea",
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     shadowColor: "#2e3230",
     shadowOffset: { width: 0, height: 4 },
@@ -40,11 +41,30 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 7,
   },
-  cardTitle: {
-    fontSize: 20,
-    color: "#2e322f",
+  attendanceEyebrow: {
+    color: "#8c8478",
+    fontSize: 11,
     fontWeight: "700",
+    marginBottom: 7,
+  },
+  cardTitle: {
+    fontSize: 24,
+    lineHeight: 30,
+    color: "#2e322f",
+    fontWeight: "800",
     marginBottom: 20,
+  },
+  attendanceTitle: {
+    fontSize: 24,
+    lineHeight: 30,
+    color: "#2e322f",
+    fontWeight: "800",
+    marginBottom: 0,
+  },
+  calendarTitle: {
+    color: "#2e322f",
+    fontSize: 20,
+    fontWeight: "700",
   },
   calendarTopRow: {
     flexDirection: "row",
@@ -154,15 +174,28 @@ export const styles = StyleSheet.create({
   },
   listTitleRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    justifyContent: "space-between",
+    gap: 12,
+    minHeight: 66,
   },
-  listCountText: {
-    color: "#7f786f",
-    fontSize: 13,
-    fontWeight: "700",
-    marginTop: 6,
+  headerTextGroup: {
+    flex: 1,
+  },
+  countBadge: {
+    minWidth: 64,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "#ebe3d6",
+    alignSelf: "flex-start",
+  },
+  countBadgeText: {
+    color: "#4a7c59",
+    fontSize: 12,
+    fontWeight: "800",
   },
   loadingWrap: {
     flexDirection: "row",

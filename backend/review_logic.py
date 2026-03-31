@@ -152,25 +152,19 @@ def _issues(member, baseline, recent, is_pitcher):
 def _review_text(member, team_name, mode, date, issues):
     name = member.get("Name") or "선수"
     position = member.get("Primary_Position") or "-"
-    issue_text = "\n".join([f"- {issue}" for issue in issues[:3]])
+    issue_text = "\n".join([f"{issue}" for issue in issues[:3]])
     return (
-        f"{team_name} {name}({position}) {mode} 리뷰\n"
+        f"{mode}에 대한 리뷰\n"
         f"{date} 경기 기준으로 이전 경기 흐름과 비교했을 때, 아래 부분을 먼저 보완하는 것이 좋습니다.\n"
+        "-------------------(리뷰 내용)-------------------\n"
         f"{issue_text}\n"
+        "------------------------------------------------\n"
         "다음 경기에서는 위 항목을 우선 점검하면서 플레이 리듬을 회복하는 데 집중해보세요."
     )
 
 
 def _needs_refresh(row):
-    message = str(row.get("message") or "")
-    issues = row.get("issues") or []
-
-    if " review" in message:
-        return True
-    if "??" in message:
-        return True
-    if "?" in message and "리뷰" not in message:
-        return True
+    return True # Force refresh once to apply new format
 
     for issue in issues:
         text = str(issue or "")
@@ -180,6 +174,120 @@ def _needs_refresh(row):
             return True
 
     return False
+
+
+def _build_review_for_games(supabase, member, player_games, recent_date, mode_override=None):
+    team_name = "TEAM"
+    if member.get("Team") is not None:
+        team_response = (
+            supabase.table("team")
+            .select("*")
+            .eq("id", member["Team"])
+            .limit(1)
+            .execute()
+        )
+        if team_response.data:
+            team_name = team_response.data[0].get("name") or team_name
+
+    is_pitcher = mode_override == "PITCHER" or (
+        mode_override is None and member.get("Is_Pitcher") == 1
+    )
+    mode = "PITCHER" if is_pitcher else "HITTER"
+
+    existing = (
+        supabase.table(REVIEW_TABLE)
+        .select("*")
+        .eq("member_id", member["Id"])
+        .eq("date", recent_date)
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        row = existing.data[0]
+        if not _needs_refresh(row):
+            return {
+                "member_id": member["Id"],
+                "member_name": member.get("Name"),
+                "mode": row.get("mode") or mode,
+                "recent_date": row.get("date"),
+                "review": row.get("message") or "",
+                "issues": row.get("issues") or [],
+                "baseline_metrics": row.get("baseline_metrics") or {},
+                "recent_metrics": row.get("recent_metrics") or {},
+                "saved": True,
+            }
+
+    recent_games = [game for game in player_games if str(game.get("date") or "") == recent_date]
+    previous_games = [game for game in player_games if str(game.get("date") or "") != recent_date][:5]
+
+    if is_pitcher:
+        recent_metrics = _pitcher_stats(recent_games)
+        baseline_metrics = (
+            _average_stats(
+                [_pitcher_stats([game]) for game in previous_games],
+                [
+                    "runs_allowed",
+                    "outs_recorded",
+                    "innings_pitched",
+                    "strikeouts",
+                    "walks",
+                    "hits_allowed",
+                    "era",
+                    "whip",
+                    "k_per_9",
+                ],
+            )
+            if previous_games
+            else dict(recent_metrics)
+        )
+    else:
+        recent_metrics = _hitter_stats(recent_games)
+        baseline_metrics = (
+            _average_stats(
+                [_hitter_stats([game]) for game in previous_games],
+                [
+                    "hits",
+                    "at_bats",
+                    "walks",
+                    "strikeouts",
+                    "runs_batted_in",
+                    "home_runs",
+                    "average",
+                    "on_base",
+                    "slugging",
+                    "ops",
+                ],
+            )
+            if previous_games
+            else dict(recent_metrics)
+        )
+
+    issues = _issues(member, baseline_metrics, recent_metrics, is_pitcher)
+    review = _review_text(member, team_name, mode, recent_date, issues)
+
+    payload = {
+        "member_id": member["Id"],
+        "date": recent_date,
+        "mode": mode,
+        "message": review,
+        "issues": issues,
+        "baseline_metrics": baseline_metrics,
+        "recent_metrics": recent_metrics,
+    }
+
+    saved = supabase.table(REVIEW_TABLE).upsert(payload, on_conflict="member_id,date").execute()
+
+    return {
+        "member_id": member["Id"],
+        "member_name": member.get("Name"),
+        "mode": mode,
+        "recent_date": recent_date,
+        "review": review,
+        "issues": issues,
+        "baseline_metrics": baseline_metrics,
+        "recent_metrics": recent_metrics,
+        "saved": bool(saved.data),
+    }
 
 
 def generate_player_review(supabase, member_id):
@@ -241,100 +349,116 @@ def generate_player_review(supabase, member_id):
 
     recent_game = player_games[0]
     recent_date = str(recent_game.get("date") or "")
+    return _build_review_for_games(supabase, member, player_games, recent_date)
 
-    existing = (
-        supabase.table(REVIEW_TABLE)
+
+def generate_team_reviews_for_date(supabase, team_id, schedule_date):
+    game_response = (
+        supabase.table("game")
         .select("*")
-        .eq("member_id", member_id)
-        .eq("date", recent_date)
-        .limit(1)
+        .eq("date", schedule_date)
+        .order("date", desc=True)
         .execute()
     )
-    if existing.data:
-        row = existing.data[0]
-        if not _needs_refresh(row):
-            return {
-                "member_id": member_id,
-                "member_name": member.get("Name"),
-                "mode": row.get("mode") or mode,
-                "recent_date": row.get("date"),
-                "review": row.get("message") or "",
-                "issues": row.get("issues") or [],
-                "baseline_metrics": row.get("baseline_metrics") or {},
-                "recent_metrics": row.get("recent_metrics") or {},
-                "saved": True,
-            }
+    target_games = game_response.data or []
 
-    previous_games = player_games[1:6]
+    participant_ids = set()
+    for game in target_games:
+        batter_id = game.get("batter_id")
+        pitcher_id = game.get("pitcher_id")
+        if batter_id is not None:
+            participant_ids.add(int(batter_id))
+        if pitcher_id is not None:
+            participant_ids.add(int(pitcher_id))
 
-    if is_pitcher:
-        recent_metrics = _pitcher_stats([recent_game])
-        baseline_metrics = (
-            _average_stats(
-                [_pitcher_stats([game]) for game in previous_games],
-                [
-                    "runs_allowed",
-                    "outs_recorded",
-                    "innings_pitched",
-                    "strikeouts",
-                    "walks",
-                    "hits_allowed",
-                    "era",
-                    "whip",
-                    "k_per_9",
-                ],
-            )
-            if previous_games
-            else dict(recent_metrics)
+    if not participant_ids:
+        return {
+            "team_id": team_id,
+            "schedule_date": str(schedule_date),
+            "count": 0,
+            "results": [],
+        }
+
+    members_response = (
+        supabase.table("member")
+        .select("*")
+        .in_("Id", sorted(participant_ids))
+        .execute()
+    )
+    members = members_response.data or []
+    participants = [
+        member
+        for member in members
+        if member.get("Primary_Position") not in COACH_POSITIONS
+        and int(member.get("Team") or -1) == int(team_id)
+    ]
+
+    results = []
+    for member in participants:
+        member_id = int(member["Id"])
+        all_games_response = (
+            supabase.table("game")
+            .select("*")
+            .or_(f"batter_id.eq.{member_id},pitcher_id.eq.{member_id}")
+            .order("date", desc=True)
+            .execute()
         )
-    else:
-        recent_metrics = _hitter_stats([recent_game])
-        baseline_metrics = (
-            _average_stats(
-                [_hitter_stats([game]) for game in previous_games],
-                [
-                    "hits",
-                    "at_bats",
-                    "walks",
-                    "strikeouts",
-                    "runs_batted_in",
-                    "home_runs",
-                    "average",
-                    "on_base",
-                    "slugging",
-                    "ops",
-                ],
+        all_games = all_games_response.data or []
+
+        pitcher_games = [
+            game
+            for game in all_games
+            if int(game.get("pitcher_id") or -1) == member_id
+        ]
+        batter_games = [
+            game
+            for game in all_games
+            if int(game.get("batter_id") or -1) == member_id
+        ]
+
+        dated_pitcher_games = [
+            game for game in pitcher_games if str(game.get("date") or "") == str(schedule_date)
+        ]
+        dated_batter_games = [
+            game for game in batter_games if str(game.get("date") or "") == str(schedule_date)
+        ]
+
+        if dated_pitcher_games:
+            selected_games = pitcher_games
+            selected_mode = "PITCHER"
+        elif dated_batter_games:
+            selected_games = batter_games
+            selected_mode = "HITTER"
+        else:
+            continue
+
+        try:
+            results.append(
+                _build_review_for_games(
+                    supabase,
+                    member,
+                    selected_games,
+                    str(schedule_date),
+                    selected_mode,
+                )
             )
-            if previous_games
-            else dict(recent_metrics)
-        )
-
-    issues = _issues(member, baseline_metrics, recent_metrics, is_pitcher)
-    review = _review_text(member, team_name, mode, recent_date, issues)
-
-    payload = {
-        "member_id": member_id,
-        "date": recent_date,
-        "mode": mode,
-        "message": review,
-        "issues": issues,
-        "baseline_metrics": baseline_metrics,
-        "recent_metrics": recent_metrics,
-    }
-
-    saved = supabase.table(REVIEW_TABLE).upsert(payload, on_conflict="member_id,date").execute()
+        except Exception as error:
+            results.append(
+                {
+                    "member_id": member_id,
+                    "member_name": member.get("Name"),
+                    "saved": False,
+                    "error": str(error),
+                }
+            )
 
     return {
-        "member_id": member_id,
-        "member_name": member.get("Name"),
-        "mode": mode,
-        "recent_date": recent_date,
-        "review": review,
-        "issues": issues,
-        "baseline_metrics": baseline_metrics,
-        "recent_metrics": recent_metrics,
-        "saved": bool(saved.data),
+        "team_id": team_id,
+        "schedule_date": str(schedule_date),
+        "count": len(results),
+        "results": results,
     }
+
 
 
 def generate_all_reviews(supabase):

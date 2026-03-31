@@ -12,7 +12,7 @@ import PlayerScheduleScreen from "../screen/playerScheduleScreen";
 import LeagueGameScheduleScreen from "../screen/leagueGameScheduleScreen";
 import DirectorScheduleScreen from "../screen/directorScheduleScreen";
 import LineupScreen from "../screen/lineupScreen";
-import BestMemberScreen from "../screen/BestMemberScreen";
+import BestMemberScreen from "../screen/bestMemberScreen";
 import ManagerScheduleScreen from "../screen/managerScheduleScreen";
 import CommonFooter from "../components/CommonFooter";
 

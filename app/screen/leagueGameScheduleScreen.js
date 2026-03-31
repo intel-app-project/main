@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  ImageBackground,
   PanResponder,
   Pressable,
   ScrollView,
@@ -10,13 +9,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
+  GAME_API_ENDPOINT,
   SCHEDULE_API_ENDPOINT,
   TEAM_API_ENDPOINT,
-  GAME_API_ENDPOINT,
 } from "../constants/scheduleConstants";
 import { styles } from "./leagueGameScheduleScreen.styles";
 import CommonHeader from "../components/CommonHeader";
@@ -32,14 +30,10 @@ const MAX_VERTICAL_TO_HORIZONTAL_RATIO = Math.tan(
   (HORIZONTAL_SWIPE_MAX_ANGLE * Math.PI) / 180,
 );
 const DRAG_FOLLOW_LIMIT = 42;
-const STADIUM_NAME = "수원 KT 위즈파크";
-const STADIUM_IMAGE_URI =
-  "https://i.namu.wiki/i/s5el6DSDQjJetZbb2WxKe-H8PtDQ6dfeZuMSKUtyro-XpSYN-lY2F-baCLWr_IqPi6nTTNQpa5zjc18gyN5xX01x2hKrAn65EKGflZmbyF1C5-hjFB2Te6mPOGzUeimD3AwO-qVSNz_C8nQSgaaozA.webp";
-const MESSAGE_NO_NEAREST = "표시할 예정 경기가 없습니다.";
-const MESSAGE_LOAD_ERROR = "리그 경기 일정을 불러오지 못했습니다.";
-const MESSAGE_NO_UPCOMING = "예정된 경기 일정이 없습니다.";
+const MESSAGE_LOAD_ERROR = "Failed to load league schedule.";
+const MESSAGE_NO_UPCOMING = "No upcoming matches.";
 const MESSAGE_LOAD_MORE = "더 보기";
-const MESSAGE_GAME_UNIT = "경기";
+const MESSAGE_GAME_UNIT = " 경기";
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const pick = (obj, keys) => {
@@ -110,16 +104,6 @@ const getTeamName = (teamNameMap, teamId, fallbackLabel) => {
   return fallbackLabel;
 };
 
-const formatNearestDate = (date) => {
-  if (!date) {
-    return "";
-  }
-
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${month}.${day}`;
-};
-
 const formatScheduleDate = (date) => {
   if (!date) {
     return "";
@@ -131,19 +115,6 @@ const formatScheduleDate = (date) => {
   return `${year}.${month}.${day} (${WEEKDAYS[date.getDay()]})`;
 };
 
-// matchDate(Date 객체)를 LineupScreen에서 사용하는 YYYYMMDD 문자열로 변환
-const toYYYYMMDD = (date) => {
-  if (!date) return "";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}${month}${day}`;
-};
-
-/**
- * 플레이별 경기 데이터(gameRows)로부터 경기별/팀별 총 득점을 합산합니다.
- * 리턴 구조: { "YYYYMMDD": { "teamId": totalScore } }
- */
 const aggregateScores = (gameRows) => {
   const map = {};
   if (!Array.isArray(gameRows)) return map;
@@ -183,10 +154,6 @@ const normalizeSchedule = (row, teamNameMap, scoreMap = {}) => {
   const home = pick(row, ["home", "home_team"]);
   const away = pick(row, ["away", "away_team"]);
 
-  // 해당 날짜에 Game 테이블의 플레이 기록이 아예 없는지 확인
-  const isScoreValid = !!scoreMap[dateKey];
-
-  // scoreMap이 존재하는 경우 일치하는 날짜와 팀 ID의 합산 점수를 사용
   const homeScore =
     scoreMap[dateKey]?.[String(home)] ??
     pick(row, ["home_score", "score_home", "HomeScore", "HOME_SCORE"]);
@@ -203,21 +170,21 @@ const normalizeSchedule = (row, teamNameMap, scoreMap = {}) => {
     awayScore:
       awayScore !== null && awayScore !== undefined ? String(awayScore) : "0",
     matchDate,
-    isScoreValid,
+    isScoreValid: !!scoreMap[dateKey],
   };
 };
 
 const LeagueGameScheduleScreen = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
-
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [games, setGames] = useState([]);
-  const [activeTab, setActiveTab] = useState("FUTURE"); // 'PAST' or 'FUTURE'
+  const [activeTab, setActiveTab] = useState("FUTURE");
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
+  const [monthDate, setMonthDate] = useState(new Date());
   const scheduleTranslateX = useRef(new Animated.Value(0)).current;
   const scheduleOpacity = useRef(new Animated.Value(1)).current;
+  const calendarTranslateX = useRef(new Animated.Value(0)).current;
+  const calendarOpacity = useRef(new Animated.Value(1)).current;
   const swipeHandledRef = useRef(false);
 
   const animateTabTransition = (direction) => {
@@ -281,17 +248,11 @@ const LeagueGameScheduleScreen = () => {
         ]);
 
         if (!scheduleRes.ok) {
-          throw new Error(`schedule API 오류: ${scheduleRes.status}`);
+          throw new Error(`schedule API error: ${scheduleRes.status}`);
         }
 
         if (!teamRes.ok) {
-          throw new Error(`team API 오류: ${teamRes.status}`);
-        }
-
-        if (!gameRes.ok) {
-          console.warn(
-            "game API를 불러오는 데 실패했습니다. 점수가 0으로 표시될 수 있습니다.",
-          );
+          throw new Error(`team API error: ${teamRes.status}`);
         }
 
         const [scheduleRows, teamRows, gameRows] = await Promise.all([
@@ -309,8 +270,21 @@ const LeagueGameScheduleScreen = () => {
           .map((row) => normalizeSchedule(row, teamNameMap, scoreMap))
           .filter(Boolean);
 
+        const firstUpcomingGame = normalizedGames
+          .filter((game) => game.matchDate >= startOfToday())
+          .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime())[0];
+
         if (isMounted) {
           setGames(normalizedGames);
+          setMonthDate(
+            firstUpcomingGame
+              ? new Date(
+                  firstUpcomingGame.matchDate.getFullYear(),
+                  firstUpcomingGame.matchDate.getMonth(),
+                  1,
+                )
+              : new Date(),
+          );
         }
       } catch (error) {
         console.error("[LeagueGameScheduleScreen] load failed", error);
@@ -334,27 +308,17 @@ const LeagueGameScheduleScreen = () => {
 
   const today = startOfToday();
 
-  // 탭에 따라 필터링 및 정합 정렬된 경기 리스트
   const filteredGames = useMemo(() => {
     if (activeTab === "FUTURE") {
       return games
         .filter((g) => g.matchDate >= today)
         .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime());
-    } else {
-      return games
-        .filter((g) => g.matchDate < today)
-        .sort((a, b) => b.matchDate.getTime() - a.matchDate.getTime());
     }
-  }, [games, activeTab, today]);
 
-  const nearestGame = useMemo(() => {
-    return (
-      games
-        .filter((g) => g.matchDate >= today)
-        .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime())[0] ||
-      null
-    );
-  }, [games, today]);
+    return games
+      .filter((g) => g.matchDate < today)
+      .sort((a, b) => b.matchDate.getTime() - a.matchDate.getTime());
+  }, [games, activeTab, today]);
 
   const visibleGames = useMemo(
     () => filteredGames.slice(0, visibleCount),
@@ -362,10 +326,65 @@ const LeagueGameScheduleScreen = () => {
   );
   const hasMoreGames = visibleCount < filteredGames.length;
 
+  const calendarRows = useMemo(() => {
+    const rows = [];
+    const first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const start = new Date(first);
+    start.setDate(first.getDate() - first.getDay());
+
+    for (let week = 0; week < 6; week += 1) {
+      const row = [];
+      for (let day = 0; day < 7; day += 1) {
+        const cell = new Date(start);
+        cell.setDate(start.getDate() + week * 7 + day);
+        row.push(cell);
+      }
+      rows.push(row);
+    }
+
+    return rows;
+  }, [monthDate]);
+
   const handleLoadMore = () => {
     setVisibleCount((current) =>
       Math.min(current + LOAD_MORE_COUNT, filteredGames.length),
     );
+  };
+
+  const runMonth = (offset) => {
+    const direction = offset > 0 ? -1 : 1;
+
+    Animated.parallel([
+      Animated.timing(calendarTranslateX, {
+        toValue: 18 * direction,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(calendarOpacity, {
+        toValue: 0.55,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setMonthDate(
+        (current) =>
+          new Date(current.getFullYear(), current.getMonth() + offset, 1),
+      );
+      calendarTranslateX.setValue(-18 * direction);
+      calendarOpacity.setValue(0.55);
+      Animated.parallel([
+        Animated.timing(calendarTranslateX, {
+          toValue: 0,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+        Animated.timing(calendarOpacity, {
+          toValue: 1,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
   };
 
   const tabSwipeResponder = useMemo(
@@ -431,201 +450,269 @@ const LeagueGameScheduleScreen = () => {
           resetDragPosition();
         },
       }),
-    [activeTab],
+    [activeTab, scheduleOpacity, scheduleTranslateX],
+  );
+
+  const calendarPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          Math.abs(gesture.dx) > 20 &&
+          Math.abs(gesture.dx) > Math.abs(gesture.dy),
+        onPanResponderRelease: (_, gesture) => {
+          if (gesture.dx >= 50) runMonth(-1);
+          if (gesture.dx <= -50) runMonth(1);
+        },
+      }),
+    [calendarOpacity, calendarTranslateX],
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <CommonHeader title="leagueGameScheduleScreen" />
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.heroCard}>
-          <Text style={styles.heroEyebrow}>STADIUM</Text>
-          <Text style={styles.heroTitle}>리그 구장</Text>
 
-          <ImageBackground
-            source={{ uri: STADIUM_IMAGE_URI }}
-            style={styles.heroImageSlot}
-            imageStyle={styles.heroImage}
+      <View style={styles.body}>
+        <View style={styles.calendarSection}>
+          <View
+            style={[styles.sectionCard, styles.calendarCard]}
+            {...calendarPanResponder.panHandlers}
           >
-            <View style={styles.heroImageOverlay} />
-            <View style={styles.heroBottomLabel}>
-              <Text style={styles.heroBottomLabelText}>{STADIUM_NAME}</Text>
-            </View>
-          </ImageBackground>
-        </View>
+            <Text style={styles.sectionEyebrow}>Schedule Calendar</Text>
 
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionEyebrow}>NEXT MATCH</Text>
-          <Text style={styles.sectionTitle}>이번 경기</Text>
-
-          {loading ? (
-            <ActivityIndicator
-              size="large"
-              color="#4a7c59"
-              style={styles.loader}
-            />
-          ) : errorText ? (
-            <Text style={styles.errorText}>{errorText}</Text>
-          ) : nearestGame ? (
-            <View style={styles.nearestCard}>
-              <Text style={styles.nearestMatchText}>
-                {nearestGame.home} <Text style={styles.vsText}>vs</Text>{" "}
-                {nearestGame.away}
-              </Text>
-              <Text style={styles.nearestDateText}>
-                {formatNearestDate(nearestGame.matchDate)}
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.emptyText}>{MESSAGE_NO_NEAREST}</Text>
-          )}
-        </View>
-
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <View>
-              <Text style={styles.sectionEyebrow}>MATCH SCHEDULE</Text>
-              <Text style={styles.sectionTitle}>
-                {activeTab === "FUTURE" ? "남은 경기 일정" : "지난 경기 기록"}
-              </Text>
-            </View>
-            {!loading && filteredGames.length > 0 ? (
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>
-                  {filteredGames.length}
-                  {MESSAGE_GAME_UNIT}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* 카테고리 전환 탭 */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[
-                styles.tabButton,
-                activeTab === "PAST" && styles.activeTab,
-              ]}
-              onPress={() => switchTab("PAST")}
-            >
+            <View style={styles.calendarTopRow}>
               <Text
-                style={[
-                  styles.tabText,
-                  activeTab === "PAST" && styles.activeTabText,
-                ]}
+                style={styles.calendarTitle}
+              >{`${monthDate.getFullYear()}년 ${monthDate.getMonth() + 1}월`}</Text>
+              <TouchableOpacity
+                style={styles.todayButton}
+                onPress={() =>
+                  setMonthDate(
+                    new Date(
+                      new Date().getFullYear(),
+                      new Date().getMonth(),
+                      1,
+                    ),
+                  )
+                }
               >
-                PAST MATCHES
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.tabButton,
-                activeTab === "FUTURE" && styles.activeTab,
-              ]}
-              onPress={() => switchTab("FUTURE")}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === "FUTURE" && styles.activeTabText,
-                ]}
-              >
-                FUTURE MATCHES
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <Text style={styles.todayButtonText}>오늘</Text>
+              </TouchableOpacity>
+            </View>
 
-          <View {...tabSwipeResponder.panHandlers}>
-            <Animated.View
-              style={{
-                transform: [{ translateX: scheduleTranslateX }],
-                opacity: scheduleOpacity,
-              }}
-            >
-              {loading ? (
-                <ActivityIndicator
-                  size="large"
-                  color="#4a7c59"
-                  style={styles.loader}
-                />
-              ) : errorText ? (
-                <Text style={styles.errorText}>{errorText}</Text>
-              ) : visibleGames.length > 0 ? (
-                <>
-                  <View style={styles.scheduleList}>
-                    {visibleGames.map((game, index) => (
+            <View style={styles.calendarBody}>
+              <TouchableOpacity
+                style={[
+                  styles.calendarSideButton,
+                  styles.calendarSideButtonLeft,
+                ]}
+                onPress={() => runMonth(-1)}
+              >
+                <Text style={styles.calendarSideArrow}>‹</Text>
+              </TouchableOpacity>
+
+              <Animated.View
+                style={{
+                  transform: [{ translateX: calendarTranslateX }],
+                  opacity: calendarOpacity,
+                }}
+              >
+                <View style={styles.weekHeader}>
+                  {WEEKDAYS.map((day) => (
+                    <Text key={day} style={styles.weekDay}>
+                      {day}
+                    </Text>
+                  ))}
+                </View>
+
+                {calendarRows.map((row, rowIndex) => (
+                  <View key={`row-${rowIndex}`} style={styles.weekRow}>
+                    {row.map((cell) => (
                       <View
-                        key={game.matchDate.getTime().toString()}
-                        style={[
-                          styles.scheduleItem,
-                          activeTab === "FUTURE" &&
-                            index === 0 &&
-                            styles.scheduleItemHighlight,
-                        ]}
+                        key={`${cell.getFullYear()}-${cell.getMonth()}-${cell.getDate()}`}
+                        style={styles.dayCell}
                       >
-                        {/* 번호 + 경기 정보 가로 배치 */}
-                        <View style={styles.scheduleItemRow}>
-                          <View style={styles.scheduleIndexBadge}>
-                            <Text style={styles.scheduleIndexText}>
-                              {String(index + 1).padStart(2, "0")}
-                            </Text>
-                          </View>
-
-                          <View style={styles.scheduleMain}>
-                            <Text
-                              style={[
-                                styles.scheduleMatchText,
-                                activeTab === "FUTURE" &&
-                                  index === 0 &&
-                                  styles.scheduleMatchTextHighlight,
-                              ]}
-                            >
-                              {game.home} vs {game.away}
-                            </Text>
-                            <View style={styles.scheduleDateRow}>
-                              <Text style={styles.scheduleDateText}>
-                                {formatScheduleDate(game.matchDate)}
-                              </Text>
-                              {activeTab === "PAST" ? (
-                                <Text style={styles.scheduleScoreText}>
-                                  {game.isScoreValid
-                                    ? `${game.homeScore} 대 ${game.awayScore}`
-                                    : "우천 취소"}
-                                </Text>
-                              ) : null}
-                            </View>
-                          </View>
+                        <View
+                          style={[
+                            styles.dayCircle,
+                            games.some(
+                              (game) =>
+                                game.matchDate.getFullYear() ===
+                                  cell.getFullYear() &&
+                                game.matchDate.getMonth() === cell.getMonth() &&
+                                game.matchDate.getDate() === cell.getDate(),
+                            ) && styles.dayEvent,
+                            new Date().getFullYear() === cell.getFullYear() &&
+                              new Date().getMonth() === cell.getMonth() &&
+                              new Date().getDate() === cell.getDate() &&
+                              styles.dayToday,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.dayText,
+                              cell.getMonth() !== monthDate.getMonth() &&
+                                styles.dayDim,
+                            ]}
+                          >
+                            {cell.getDate()}
+                          </Text>
                         </View>
                       </View>
                     ))}
                   </View>
+                ))}
+              </Animated.View>
 
-                  {hasMoreGames ? (
-                    <Pressable
-                      style={styles.loadMoreButton}
-                      onPress={handleLoadMore}
-                    >
-                      <Text style={styles.loadMoreButtonText}>
-                        {MESSAGE_LOAD_MORE}
-                      </Text>
-                    </Pressable>
-                  ) : null}
-                </>
-              ) : (
-                <Text style={styles.emptyText}>
-                  {activeTab === "FUTURE"
-                    ? MESSAGE_NO_UPCOMING
-                    : "과거 경기 기록이 없습니다."}
-                </Text>
-              )}
-            </Animated.View>
+              <TouchableOpacity
+                style={[
+                  styles.calendarSideButton,
+                  styles.calendarSideButtonRight,
+                ]}
+                onPress={() => runMonth(1)}
+              >
+                <Text style={styles.calendarSideArrow}>›</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </ScrollView>
+
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <Text style={styles.sectionEyebrow}>Match schedule</Text>
+                <Text style={styles.sectionTitle}>{"경기 일정"}</Text>
+              </View>
+              {!loading && filteredGames.length > 0 ? (
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>
+                    {filteredGames.length}
+                    {MESSAGE_GAME_UNIT}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.tabButton,
+                  activeTab === "PAST" && styles.activeTab,
+                ]}
+                onPress={() => switchTab("PAST")}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === "PAST" && styles.activeTabText,
+                  ]}
+                >
+                  이전 경기
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tabButton,
+                  activeTab === "FUTURE" && styles.activeTab,
+                ]}
+                onPress={() => switchTab("FUTURE")}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === "FUTURE" && styles.activeTabText,
+                  ]}
+                >
+                  이후 경기
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View {...tabSwipeResponder.panHandlers}>
+              <Animated.View
+                style={{
+                  transform: [{ translateX: scheduleTranslateX }],
+                  opacity: scheduleOpacity,
+                }}
+              >
+                {loading ? (
+                  <ActivityIndicator
+                    size="large"
+                    color="#4a7c59"
+                    style={styles.loader}
+                  />
+                ) : errorText ? (
+                  <Text style={styles.errorText}>{errorText}</Text>
+                ) : visibleGames.length > 0 ? (
+                  <>
+                    <View style={styles.scheduleList}>
+                      {visibleGames.map((game, index) => (
+                        <View
+                          key={`${game.matchDate.getTime()}-${index}`}
+                          style={[
+                            styles.scheduleItem,
+                            activeTab === "FUTURE" &&
+                              index === 0 &&
+                              styles.scheduleItemHighlight,
+                          ]}
+                        >
+                          <View style={styles.scheduleItemRow}>
+                            <View style={styles.scheduleMain}>
+                              <Text
+                                style={[
+                                  styles.scheduleMatchText,
+                                  activeTab === "FUTURE" &&
+                                    index === 0 &&
+                                    styles.scheduleMatchTextHighlight,
+                                ]}
+                              >
+                                {game.home} vs {game.away}
+                              </Text>
+                              <View style={styles.scheduleDateRow}>
+                                <Text style={styles.scheduleDateText}>
+                                  {formatScheduleDate(game.matchDate)}
+                                </Text>
+                                {activeTab === "PAST" ? (
+                                  <Text style={styles.scheduleScoreText}>
+                                    {game.isScoreValid
+                                      ? `${game.homeScore} : ${game.awayScore}`
+                                      : "Canceled"}
+                                  </Text>
+                                ) : null}
+                              </View>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+
+                    {hasMoreGames ? (
+                      <Pressable
+                        style={styles.loadMoreButton}
+                        onPress={handleLoadMore}
+                      >
+                        <Text style={styles.loadMoreButtonText}>
+                          {MESSAGE_LOAD_MORE}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </>
+                ) : (
+                  <Text style={styles.emptyText}>
+                    {activeTab === "FUTURE"
+                      ? MESSAGE_NO_UPCOMING
+                      : "No past matches."}
+                  </Text>
+                )}
+              </Animated.View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
