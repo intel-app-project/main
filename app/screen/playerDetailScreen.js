@@ -6,9 +6,15 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  Image,
+  Alert,
+  Linking,
+  Modal
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Polygon, Text as SvgText, SvgUri } from "react-native-svg";
+import * as FileSystem from "expo-file-system/legacy";
+import * as MediaLibrary from 'expo-media-library';
 import { styles } from "./playerDetailScreen.styles";
 import { supabase } from "../lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -19,9 +25,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - 24; // Based on 12px horizontal padding
 
 const PlayerDetailScreen = ({navigation, route}) => {
-  const { id } = route.params;
-      console.log(id);
-
+  const { id, loginId } = route.params;
+  const isOwner = Number(loginId) === Number(id);
+  console.log(`[PlayerDetailScreen] ViewID: ${id}, LoginID: ${loginId}, isOwner: ${isOwner}`);
 
   const [loading, setLoading] = useState(true);
   const [member, setMember] = useState(null);
@@ -31,7 +37,11 @@ const PlayerDetailScreen = ({navigation, route}) => {
   const [canBat, setCanBat] = useState(false);
   const [recentGames, setRecentGames] = useState([]);
   const [reviewText, setReviewText] = useState("");
+  const [reviewIssues, setReviewIssues] = useState([]);
   const [reviewLoading, setReviewLoading] = useState(false);
+
+  const [prLoading, setPrLoading] = useState(false);
+  const [prImage, setPrImage] = useState(null);
 
   const [hitterStats, setHitterStats] = useState({
     contact: 0, power: 0, speed: 0, eye: 0, clutch: 0,
@@ -44,6 +54,10 @@ const PlayerDetailScreen = ({navigation, route}) => {
     era: "0.00", whip: "0.00", k9: "0.0", avgSpeed: 0,
     ip: "0.0", kSum: 0, bbSum: 0, hitsAllowed: 0
   });
+  
+  // 미리보기 및 카드 합성 상태
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [finalCardImage, setFinalCardImage] = useState(null);
 
   useEffect(() => {
     if (id !== undefined) {
@@ -59,6 +73,8 @@ const PlayerDetailScreen = ({navigation, route}) => {
       setTeam(null);
       setRecentGames([]);
       setReviewText("");
+      setReviewIssues([]);
+      setPrImage(null);
       setHitterStats({
         contact: 0, power: 0, speed: 0, eye: 0, clutch: 0,
         avg: ".000", hr: 0, rbi: 0, ops: ".000", obp: ".000", slg: ".000",
@@ -74,6 +90,9 @@ const PlayerDetailScreen = ({navigation, route}) => {
       const { data: memberData } = await query.single();
 
       setMember(memberData);
+      if (memberData.Picture) {
+        setPrImage(memberData.Picture);
+      }
 
       if (memberData.Team) {
         const { data: teamData } = await supabase
@@ -132,11 +151,159 @@ const PlayerDetailScreen = ({navigation, route}) => {
       }
 
       setReviewText(data?.review || "");
+      setReviewIssues(data?.issues || []);
     } catch (error) {
       console.error("Error fetching review:", error);
       setReviewText("리뷰를 아직 불러오지 못했습니다.");
+      setReviewIssues([]);
     } finally {
       setReviewLoading(false);
+    }
+  };
+
+  const generatePRCard = async () => {
+    const LOG_TAG = "[playerDetailScreen.js > generatePRCard]";
+    try {
+      console.log(`${LOG_TAG} 시작...`);
+      setPrLoading(true);
+      setPrImage(null);
+      
+      const seed = member.Name;
+      const issueString = reviewIssues && reviewIssues.length > 0 ? reviewIssues.join(" ") : "뛰어난 선수입니다.";
+      const promptInput = `선수 이름: ${seed}, 선수 아바타: https://api.dicebear.com/9.x/adventurer/png?seed=${seed}, 특징: ${issueString}`;
+      
+      console.log(`${LOG_TAG} 1단계: Gemini 프롬프트 생성 요청 중... (Input: ${seed})`);
+      const geminiUrl = `${API_BASE_URL}/api/gemini?prompt=${encodeURIComponent(promptInput)}`;
+      const geminiRes = await fetch(geminiUrl);
+      console.log(`${LOG_TAG} Gemini 응답 상태: ${geminiRes.status}`);
+
+      if (!geminiRes.ok) {
+        const errBody = await geminiRes.text();
+        console.error(`${LOG_TAG} Gemini API 오류 상세:`, errBody);
+        throw new Error(`Gemini 서버 오류 (Status: ${geminiRes.status})`);
+      }
+
+      const geminiData = await geminiRes.json();
+      const generatedPrompt = geminiData.result;
+      
+      if (!generatedPrompt) {
+        throw new Error("Gemini로부터 프롬프트를 받지 못했습니다.");
+      }
+      console.log(`${LOG_TAG} 2단계: Gemini 프롬프트 획득 완료. 이미지 생성 요청 중...`);
+
+      const bananaUrl = `${API_BASE_URL}/api/banana?banana=${encodeURIComponent(generatedPrompt)}`;
+      const bananaRes = await fetch(bananaUrl);
+      console.log(`${LOG_TAG} Banana 응답 상태: ${bananaRes.status}`);
+
+      if (!bananaRes.ok) {
+        const errBody = await bananaRes.text();
+        console.error(`${LOG_TAG} Banana API 오류 상세:`, errBody);
+        throw new Error(`이미지 서버 오류 (Status: ${bananaRes.status})`);
+      }
+
+      const bananaData = await bananaRes.json();
+      if (!bananaData.result || bananaData.result.length < 100) {
+        throw new Error("유효하지 않은 이미지 데이터입니다.");
+      }
+      
+      console.log(`${LOG_TAG} 3단계: 이미지 생성 성공. DB 저장 중...`);
+      setPrImage(bananaData.result);
+
+      // DB에 저장
+      try {
+        const dbRes = await fetch(`${API_BASE_URL}/api/member`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ 
+            id: member.Id, 
+            data: { Picture: bananaData.result } 
+          }),
+        });
+        console.log(`${LOG_TAG} DB 저장 완료 (Status: ${dbRes.status})`);
+      } catch (dbError) {
+        console.error(`${LOG_TAG} DB 저장 중 무시 가능한 오류:`, dbError);
+      }
+      
+      console.log(`${LOG_TAG} 모든 과정 성공적으로 완료!`);
+    } catch (e) {
+      console.error(`${LOG_TAG} 예외 발생!!!:`, e.message);
+      Alert.alert("생성 실패", `문제가 발생했습니다: ${e.message}\n백엔드 콘솔 로그를 확인해 주세요.`);
+    } finally {
+      setPrLoading(false);
+    }
+  };
+
+  // 1. 카드 미리보기 생성 (백엔드 합성 요청 및 모달 표시)
+  const handlePreviewCard = async () => {
+    if (!prImage) return;
+    try {
+      setPrLoading(true);
+      
+      const cardRes = await fetch(`${API_BASE_URL}/api/make_card`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image: prImage,
+          member: member,
+          team: team,
+          stats: activeMode === "HITTER" ? hitterStats : pitcherStats,
+          active_mode: activeMode
+        }),
+      });
+      
+      if (!cardRes.ok) {
+        throw new Error("카드 합성 서버 오류");
+      }
+      
+      const cardData = await cardRes.json();
+      setFinalCardImage(cardData.result);
+      setPreviewVisible(true);
+    } catch (e) {
+      console.error("Preview Error:", e);
+      Alert.alert("미리보기 실패", "카드를 생성하는 중 오류가 발생했습니다.");
+    } finally {
+      setPrLoading(false);
+    }
+  };
+
+  // 2. 실제 갤러리 저장 로직
+  const handleSaveToLibrary = async () => {
+    if (!finalCardImage) return;
+    try {
+      setPrLoading(true);
+      
+      // 권한 상태 확인
+      const { status, canAskAgain } = await MediaLibrary.getPermissionsAsync();
+      
+      if (status !== 'granted') {
+        if (canAskAgain) {
+          const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
+          if (newStatus !== 'granted') {
+            Alert.alert("권한 거부", "나만의 카드를 저장하기 위해서는 갤러리 접근 권한이 필요합니다.");
+            return;
+          }
+        } else {
+          Alert.alert("권한 설정 필요", "갤러리 접근 권한을 허용해 주세요.");
+          return;
+        }
+      }
+      
+      const filename = FileSystem.documentDirectory + `pr_card_${member?.Name}_${Date.now()}.jpg`;
+      await FileSystem.writeAsStringAsync(filename, finalCardImage, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      
+      await MediaLibrary.saveToLibraryAsync(filename);
+      Alert.alert("저장 완료", "사진첩에 안전하게 저장되었습니다! ✨");
+    } catch (e) {
+      console.error("Save Error:", e);
+      Alert.alert("저장 실패", "이미지를 저장하는 중 오류가 발생했습니다.");
+    } finally {
+      setPrLoading(false);
     }
   };
 
@@ -440,6 +607,95 @@ const PlayerDetailScreen = ({navigation, route}) => {
               </Text>
             )}
           </View>
+          
+          <View style={styles.prCardContainer}>
+            <View style={styles.prCardHeader}>
+              <MaterialCommunityIcons name="magic-staff" size={20} color="#4a7c59" />
+              <Text style={styles.prCardTitle}>Creative PR Factory</Text>
+            </View>
+            <Text style={{ fontSize: 13, color: "#705c30", marginBottom: 12 }}>
+              선수의 최근 기록과 리뷰 데이터를 종합하여 NanoBanana AI가 나만의 홍보 카드를 만들어 줍니다.
+            </Text>
+            
+            {!prImage ? (
+              <View>
+                <View style={[styles.prImageContainer, { backgroundColor: "#fdf8e1", justifyContent: "center", alignItems: "center", borderStyle: "dashed", borderWidth: 1, borderColor: "#e0d5b1" }]}>
+                   {prLoading ? (
+                     <ActivityIndicator size="large" color="#4a7c59" />
+                   ) : (
+                     <>
+                       <MaterialCommunityIcons name="image-plus" size={40} color="#e0d5b1" />
+                       <Text style={{ color: "#b0a688", marginTop: 8, fontSize: 14, fontWeight: "600" }}>카드 생성 전입니다</Text>
+                     </>
+                   )}
+                </View>
+                {isOwner && (
+                  <TouchableOpacity 
+                    style={[styles.prButton, prLoading && { opacity: 0.7 }]} 
+                    onPress={generatePRCard}
+                    disabled={prLoading}
+                  >
+                    {prLoading ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="auto-fix" size={18} color="#ffffff" />
+                        <Text style={styles.prButtonText}>카드 생성하기</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <View>
+                <View style={[styles.prImageContainer, prLoading && { backgroundColor: "#f5f5f5", opacity: 0.5 }]}>
+                  {prLoading && (
+                    <View style={{ position: "absolute", zIndex: 1, top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center" }}>
+                      <ActivityIndicator size="large" color="#4a7c59" />
+                    </View>
+                  )}
+                  {prImage === "이미지 생성에 실패했습니다." ? (
+                    <View style={{ height: 300, justifyContent: "center", alignItems: "center", padding: 20 }}>
+                      <MaterialCommunityIcons name="alert-circle-outline" size={40} color="#d9534f" />
+                      <Text style={{ color: "#d9534f", marginTop: 12, textAlign: "center", fontWeight: "600" }}>
+                        이미지 생성에 실패했던 데이터입니다.{"\n"}다시 생성 버튼을 눌러주세요.
+                      </Text>
+                    </View>
+                  ) : (
+                    <Image 
+                      source={{ uri: `data:image/jpeg;base64,${prImage}` }} 
+                      style={styles.prImage} 
+                    />
+                  )}
+                </View>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <TouchableOpacity 
+                    style={[styles.prButton, { flex: 1 }, prLoading && { opacity: 0.7 }]} 
+                    onPress={handlePreviewCard}
+                    disabled={prLoading}
+                  >
+                    {prLoading ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="eye-outline" size={18} color="#ffffff" />
+                        <Text style={styles.prButtonText}>선수 카드 미리보기</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                  {isOwner && (
+                    <TouchableOpacity 
+                      style={[styles.prButton, { flex: 0.25, backgroundColor: "#8b9467" }, prLoading && { opacity: 0.7 }]} 
+                      onPress={generatePRCard}
+                      disabled={prLoading}
+                    >
+                      <MaterialCommunityIcons name="refresh" size={18} color="#ffffff" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
+          </View>
         </View>
 
         {(member?.Primary_Position === "감독" || member?.Primary_Position === "기록원") ? (
@@ -572,6 +828,55 @@ const PlayerDetailScreen = ({navigation, route}) => {
         )}
 
       </ScrollView>
+
+      {/* 카드 미리보기 모달 */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={previewVisible}
+        onRequestClose={() => setPreviewVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>선수 카드 미리보기</Text>
+              <TouchableOpacity onPress={() => setPreviewVisible(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#2e3230" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalImageWrapper}>
+              {finalCardImage ? (
+                <Image 
+                  source={{ uri: `data:image/jpeg;base64,${finalCardImage}` }} 
+                  style={styles.modalImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <View style={[styles.modalImage, { justifyContent: "center", alignItems: "center", backgroundColor: "#f5f5f5" }]}>
+                  <ActivityIndicator size="large" color="#4a7c59" />
+                </View>
+              )}
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={styles.modalSaveButton} 
+                onPress={handleSaveToLibrary}
+              >
+                <MaterialCommunityIcons name="download" size={20} color="#ffffff" />
+                <Text style={styles.modalSaveButtonText}>갤러리에 저장</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalCloseButton} 
+                onPress={() => setPreviewVisible(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>닫기</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
