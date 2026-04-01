@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SvgUri } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { API_BASE_URL } from "../constants/commonConstants";
 import {
   MEMBER_API_ENDPOINT,
@@ -17,7 +17,7 @@ import {
 } from "../constants/scheduleConstants";
 import { styles } from "./myGameScreen.styles";
 import CommonHeader from "../components/CommonHeader";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 const STADIUM_NAME = "수원 KT 위즈파크";
 const STADIUM_IMAGE_URI =
@@ -92,192 +92,195 @@ const MyGameScreen = ({ route }) => {
   const [matchData, setMatchData] = useState(null);
   const [nearestGame, setNearestGame] = useState(null);
 
-  useEffect(() => {
-    let mounted = true;
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
 
-    const load = async () => {
-      try {
-        setLoading(true);
-        setErrorText("");
+      const load = async () => {
+        try {
+          setLoading(true);
+          setErrorText("");
 
-        if (id === undefined || id === null) {
-          throw new Error("Missing member id.");
-        }
-
-        const [scheduleRes, teamRes, membersRes] = await Promise.all([
-          fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`),
-          fetch(`${API_BASE_URL}${TEAM_API_ENDPOINT}`),
-          fetch(`${API_BASE_URL}${MEMBER_API_ENDPOINT}`),
-        ]);
-
-        if (!scheduleRes.ok) {
-          throw new Error(`schedule API error: ${scheduleRes.status}`);
-        }
-        if (!teamRes.ok) {
-          throw new Error(`team API error: ${teamRes.status}`);
-        }
-        if (!membersRes.ok) {
-          throw new Error(`member API error: ${membersRes.status}`);
-        }
-
-        const schedules = await scheduleRes.json();
-        const teams = await teamRes.json();
-        const members = await membersRes.json();
-
-        const member = (members || []).find((item) => item?.Id === id);
-        if (!member) {
-          throw new Error("Member not found.");
-        }
-
-        const teamNameById = {};
-        (teams || []).forEach((team) => {
-          const teamId = team?.id ?? team?.Id;
-          const teamName = team?.name ?? team?.Name;
-          if (teamId !== undefined && teamId !== null && teamName) {
-            teamNameById[String(teamId)] = teamName;
+          if (id === undefined || id === null) {
+            throw new Error("Missing member id.");
           }
-        });
 
-        const today = new Date();
-        const startToday = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate(),
-        ).getTime();
+          const [scheduleRes, teamRes, membersRes] = await Promise.all([
+            fetch(`${API_BASE_URL}${SCHEDULE_API_ENDPOINT}`),
+            fetch(`${API_BASE_URL}${TEAM_API_ENDPOINT}`),
+            fetch(`${API_BASE_URL}${MEMBER_API_ENDPOINT}`),
+          ]);
 
-        const selected = (schedules || []).find((row) => {
-          if (row?.deleted_at) return false;
-          if (targetDate && row?.date === targetDate) return true;
+          if (!scheduleRes.ok) {
+            throw new Error(`schedule API error: ${scheduleRes.status}`);
+          }
+          if (!teamRes.ok) {
+            throw new Error(`team API error: ${teamRes.status}`);
+          }
+          if (!membersRes.ok) {
+            throw new Error(`member API error: ${membersRes.status}`);
+          }
 
-          const rowDate = parseDate(row?.date);
-          return (
-            rowDate &&
-            rowDate.getTime() >= startToday &&
-            (row?.home === member?.Team || row?.away === member?.Team)
-          );
-        });
+          const schedules = await scheduleRes.json();
+          const teams = await teamRes.json();
+          const members = await membersRes.json();
 
-        const upcoming = (schedules || [])
-          .filter((row) => {
+          const member = (members || []).find((item) => item?.Id === id);
+          if (!member) {
+            throw new Error("Member not found.");
+          }
+
+          const teamNameById = {};
+          (teams || []).forEach((team) => {
+            const teamId = team?.id ?? team?.Id;
+            const teamName = team?.name ?? team?.Name;
+            if (teamId !== undefined && teamId !== null && teamName) {
+              teamNameById[String(teamId)] = teamName;
+            }
+          });
+
+          const today = new Date();
+          const startToday = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+          ).getTime();
+
+          const selected = (schedules || []).find((row) => {
             if (row?.deleted_at) return false;
+            if (targetDate && row?.date === targetDate) return true;
+
             const rowDate = parseDate(row?.date);
-            return rowDate && rowDate.getTime() >= startToday;
-          })
-          .sort((a, b) =>
-            String(a?.date || "").localeCompare(String(b?.date || "")),
-          )[0];
+            return (
+              rowDate &&
+              rowDate.getTime() >= startToday &&
+              (row?.home === member?.Team || row?.away === member?.Team)
+            );
+          });
 
-        const matchDate = parseDate(selected?.date);
-        const isHome = selected?.home === member?.Team;
-        const rawLineupData = isHome
-          ? selected?.home_lineup
-          : selected?.away_lineup;
+          const upcoming = (schedules || [])
+            .filter((row) => {
+              if (row?.deleted_at) return false;
+              const rowDate = parseDate(row?.date);
+              return rowDate && rowDate.getTime() >= startToday;
+            })
+            .sort((a, b) =>
+              String(a?.date || "").localeCompare(String(b?.date || "")),
+            )[0];
 
-        let lineup = parseJson(rawLineupData);
-        if (lineup && !lineup.defense && !lineup.batting) {
-          lineup = { defense: lineup, batting: Array(9).fill(null) };
-        }
-        if (!lineup || !lineup.defense) {
-          lineup = { defense: {}, batting: Array(9).fill(null) };
-        }
+          const matchDate = parseDate(selected?.date);
+          const isHome = selected?.home === member?.Team;
+          const rawLineupData = isHome
+            ? selected?.home_lineup
+            : selected?.away_lineup;
 
-        const currentMemberMap = parseJson(
-          isHome ? selected?.home_member : selected?.away_member,
-        );
-
-        const roster = (members || [])
-          .filter(
-            (item) => item?.Team === member?.Team && currentMemberMap[item?.Id],
-          )
-          .map((item) => ({
-            id: item.Id,
-            name: item.Name,
-            meta: `#${item.Num} ${item.Primary_Position}`,
-          }));
-
-        roster.sort((a, b) => a.name.localeCompare(b.name, "ko"));
-
-        const getNameById = (memberId) => {
-          if (!memberId) return null;
-          const found = (members || []).find(
-            (item) => String(item.Id) === String(memberId),
-          );
-          return found?.Name || null;
-        };
-
-        const defenseNames = {};
-        Object.keys(lineup.defense || {}).forEach((pos) => {
-          if (pos !== "BENCH") {
-            const memberId = lineup.defense[pos];
-            defenseNames[pos] = {
-              id: memberId ? Number(memberId) : null,
-              name: getNameById(memberId),
-            };
+          let lineup = parseJson(rawLineupData);
+          if (lineup && !lineup.defense && !lineup.batting) {
+            lineup = { defense: lineup, batting: Array(9).fill(null) };
           }
-        });
+          if (!lineup || !lineup.defense) {
+            lineup = { defense: {}, batting: Array(9).fill(null) };
+          }
 
-        const benchNames = (lineup.defense?.BENCH || [])
-          .map((memberId) => getNameById(memberId))
-          .filter(Boolean);
-
-        if (mounted) {
-          setNearestGame(
-            upcoming
-              ? {
-                  home:
-                    teamNameById[String(upcoming.home)] ||
-                    `TEAM ${upcoming.home ?? ""}`,
-                  away:
-                    teamNameById[String(upcoming.away)] ||
-                    `TEAM ${upcoming.away ?? ""}`,
-                  dateText: formatMonthDay(parseDate(upcoming.date)),
-                }
-              : null,
+          const currentMemberMap = parseJson(
+            isHome ? selected?.home_member : selected?.away_member,
           );
 
-          setMatchData(
-            selected
-              ? {
-                  dateText: matchDate
-                    ? formatMonthDay(matchDate)
-                    : String(selected?.date),
-                  timeText: "12:00",
-                  homeTeamName:
-                    teamNameById[String(selected?.home)] ||
-                    `TEAM ${selected?.home ?? ""}`,
-                  awayTeamName:
-                    teamNameById[String(selected?.away)] ||
-                    `TEAM ${selected?.away ?? ""}`,
-                  stadiumName: STADIUM_NAME,
-                  isHome,
-                  playerName: member.Name,
-                  defense: defenseNames,
-                  bench: benchNames,
-                  roster,
-                }
-              : null,
-          );
-        }
-      } catch (error) {
-        console.error("[MyGameScreen] load failed", error);
-        if (mounted) {
-          setNearestGame(null);
-          setMatchData(null);
-          setErrorText(error.message || "Failed to load my game data.");
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
+          const roster = (members || [])
+            .filter(
+              (item) =>
+                item?.Team === member?.Team && currentMemberMap[item?.Id],
+            )
+            .map((item) => ({
+              id: item.Id,
+              name: item.Name,
+              meta: `#${item.Num} ${item.Primary_Position}`,
+            }));
 
-    load();
+          roster.sort((a, b) => a.name.localeCompare(b.name, "ko"));
 
-    return () => {
-      mounted = false;
-    };
-  }, [id, targetDate]);
+          const getNameById = (memberId) => {
+            if (!memberId) return null;
+            const found = (members || []).find(
+              (item) => String(item.Id) === String(memberId),
+            );
+            return found?.Name || null;
+          };
+
+          const defenseNames = {};
+          Object.keys(lineup.defense || {}).forEach((pos) => {
+            if (pos !== "BENCH") {
+              const memberId = lineup.defense[pos];
+              defenseNames[pos] = {
+                id: memberId ? Number(memberId) : null,
+                name: getNameById(memberId),
+              };
+            }
+          });
+
+          const benchNames = (lineup.defense?.BENCH || [])
+            .map((memberId) => getNameById(memberId))
+            .filter(Boolean);
+
+          if (mounted) {
+            setNearestGame(
+              upcoming
+                ? {
+                    home:
+                      teamNameById[String(upcoming.home)] ||
+                      `TEAM ${upcoming.home ?? ""}`,
+                    away:
+                      teamNameById[String(upcoming.away)] ||
+                      `TEAM ${upcoming.away ?? ""}`,
+                    dateText: formatMonthDay(parseDate(upcoming.date)),
+                  }
+                : null,
+            );
+
+            setMatchData(
+              selected
+                ? {
+                    dateText: matchDate
+                      ? formatMonthDay(matchDate)
+                      : String(selected?.date),
+                    timeText: "12:00",
+                    homeTeamName:
+                      teamNameById[String(selected?.home)] ||
+                      `TEAM ${selected?.home ?? ""}`,
+                    awayTeamName:
+                      teamNameById[String(selected?.away)] ||
+                      `TEAM ${selected?.away ?? ""}`,
+                    stadiumName: STADIUM_NAME,
+                    isHome,
+                    playerName: member.Name,
+                    defense: defenseNames,
+                    bench: benchNames,
+                    roster,
+                  }
+                : null,
+            );
+          }
+        } catch (error) {
+          console.error("[MyGameScreen] load failed", error);
+          if (mounted) {
+            setNearestGame(null);
+            setMatchData(null);
+            setErrorText(error.message || "Failed to load my game data.");
+          }
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
+        }
+      };
+
+      load();
+
+      return () => {
+        mounted = false;
+      };
+    }, [id, targetDate]),
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
