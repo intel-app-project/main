@@ -1,10 +1,6 @@
 from __future__ import annotations
-
 from .prompts import build_review_text
 from .rules import build_hitter_metrics, build_pitcher_metrics, detect_review_issues
-
-REVIEW_TABLE = "review"
-
 
 def _average_metrics(metrics_list: list[dict], keys: list[str]) -> dict:
     if not metrics_list:
@@ -34,7 +30,7 @@ def _fetch_existing_review(supabase, member_id: int, recent_game_date: str | Non
 
     try:
         response = (
-            supabase.table(REVIEW_TABLE)
+            supabase.table("review")
             .select("*")
             .eq("member_id", member_id)
             .eq("date", recent_game_date)
@@ -50,7 +46,7 @@ def _fetch_existing_review(supabase, member_id: int, recent_game_date: str | Non
 def _save_review(supabase, payload: dict) -> dict | None:
     try:
         upsert_response = (
-            supabase.table(REVIEW_TABLE)
+            supabase.table("review")
             .upsert(payload, on_conflict="member_id,date")
             .execute()
         )
