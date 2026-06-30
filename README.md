@@ -119,17 +119,63 @@ BTS는 감독, 선수, 기록원 역할을 기준으로 야구팀 운영 기능�
 
 ## 시연 영상
 
-`docs/reports/capture/`에는 역할별 UI 흐름을 확인할 수 있는 mp4 시연 영상이 정리되어 있습니다.
+`docs/reports/capture/`에는 역할별 UI 흐름을 확인할 수 있는 mp4 시연 영상이 정리되어 있습니다. GitHub README에서 바로 재생할 수 있도록 각 파일을 플레이어로 연결했습니다.
 
-| 구분 | 영상 | 확인 가능한 흐름 |
-| --- | --- | --- |
-| 선수 전체 | [선수UI-전체.mp4](<docs/reports/capture/선수UI-전체.mp4>) | 선수 로그인 이후 주요 탭과 전체 사용 흐름 |
-| 선수 내 경기 | [선수UI-내경기.mp4](<docs/reports/capture/선수UI-내경기.mp4>) | 내 팀 경기, 라인업, 참석자/벤치 확인 |
-| 선수 일정 관리 | [선수UI-일정관리.mp4](<docs/reports/capture/선수UI-일정관리.mp4>) | 경기 일정 확인과 참석/불참/미응답 상태 관리 |
-| 선수 팀 정보 | [선수UI-팀정보.mp4](<docs/reports/capture/선수UI-팀정보.mp4>) | 팀 정보, 베스트 멤버, 로스터 조회 |
-| 선수 리그 일정 | [선수UI-리그일정.mp4](<docs/reports/capture/선수UI-리그일정.mp4>) | 리그 전체 경기 일정과 결과 조회 |
-| 감독 전체 | [감독UI-전체.mp4](<docs/reports/capture/감독UI-전체.mp4>) | 감독 일정 확인, 라인업 구성, 베스트 멤버 관리, 리뷰 생성 흐름 |
-| 기록원 전체 | [기록원(manager)UI-전체.mp4](<docs/reports/capture/기록원(manager)UI-전체.mp4>) | 경기 일정 등록, 수정, 삭제 중심의 기록원 관리 흐름 |
+### 선수 전체
+
+선수 로그인 이후 주요 탭과 전체 사용 흐름
+
+<video src="https://raw.githubusercontent.com/intel-app-project/main/refs/heads/codex/hyunseok/docs/reports/capture/%EC%84%A0%EC%88%98UI-%EC%A0%84%EC%B2%B4.mp4" controls width="360">
+브라우저에서 재생되지 않으면 <a href="docs/reports/capture/선수UI-전체.mp4">선수UI-전체.mp4</a> 파일을 열어 확인하세요.
+</video>
+
+### 선수 내 경기
+
+내 팀 경기, 라인업, 참석자/벤치 확인
+
+<video src="https://raw.githubusercontent.com/intel-app-project/main/refs/heads/codex/hyunseok/docs/reports/capture/%EC%84%A0%EC%88%98UI-%EB%82%B4%EA%B2%BD%EA%B8%B0.mp4" controls width="360">
+브라우저에서 재생되지 않으면 <a href="docs/reports/capture/선수UI-내경기.mp4">선수UI-내경기.mp4</a> 파일을 열어 확인하세요.
+</video>
+
+### 선수 일정 관리
+
+경기 일정 확인과 참석/불참/미응답 상태 관리
+
+<video src="https://raw.githubusercontent.com/intel-app-project/main/refs/heads/codex/hyunseok/docs/reports/capture/%EC%84%A0%EC%88%98UI-%EC%9D%BC%EC%A0%95%EA%B4%80%EB%A6%AC.mp4" controls width="360">
+브라우저에서 재생되지 않으면 <a href="docs/reports/capture/선수UI-일정관리.mp4">선수UI-일정관리.mp4</a> 파일을 열어 확인하세요.
+</video>
+
+### 선수 팀 정보
+
+팀 정보, 베스트 멤버, 로스터 조회
+
+<video src="https://raw.githubusercontent.com/intel-app-project/main/refs/heads/codex/hyunseok/docs/reports/capture/%EC%84%A0%EC%88%98UI-%ED%8C%80%EC%A0%95%EB%B3%B4.mp4" controls width="360">
+브라우저에서 재생되지 않으면 <a href="docs/reports/capture/선수UI-팀정보.mp4">선수UI-팀정보.mp4</a> 파일을 열어 확인하세요.
+</video>
+
+### 선수 리그 일정
+
+리그 전체 경기 일정과 결과 조회
+
+<video src="https://raw.githubusercontent.com/intel-app-project/main/refs/heads/codex/hyunseok/docs/reports/capture/%EC%84%A0%EC%88%98UI-%EB%A6%AC%EA%B7%B8%EC%9D%BC%EC%A0%95.mp4" controls width="360">
+브라우저에서 재생되지 않으면 <a href="docs/reports/capture/선수UI-리그일정.mp4">선수UI-리그일정.mp4</a> 파일을 열어 확인하세요.
+</video>
+
+### 감독 전체
+
+감독 일정 확인, 라인업 구성, 베스트 멤버 관리, 리뷰 생성 흐름
+
+<video src="https://raw.githubusercontent.com/intel-app-project/main/refs/heads/codex/hyunseok/docs/reports/capture/%EA%B0%90%EB%8F%85UI-%EC%A0%84%EC%B2%B4.mp4" controls width="360">
+브라우저에서 재생되지 않으면 <a href="docs/reports/capture/감독UI-전체.mp4">감독UI-전체.mp4</a> 파일을 열어 확인하세요.
+</video>
+
+### 기록원 전체
+
+경기 일정 등록, 수정, 삭제 중심의 기록원 관리 흐름
+
+<video src="https://raw.githubusercontent.com/intel-app-project/main/refs/heads/codex/hyunseok/docs/reports/capture/%EA%B8%B0%EB%A1%9D%EC%9B%90%28manager%29UI-%EC%A0%84%EC%B2%B4.mp4" controls width="360">
+브라우저에서 재생되지 않으면 <a href="docs/reports/capture/기록원(manager)UI-전체.mp4">기록원(manager)UI-전체.mp4</a> 파일을 열어 확인하세요.
+</video>
 
 ## 백엔드 API 요약
 
