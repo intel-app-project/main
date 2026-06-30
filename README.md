@@ -66,9 +66,9 @@ BTS는 감독, 선수, 기록원 역할을 기준으로 야구팀 운영 기능�
 │  └─ supabase/migrations/      # Supabase SQL migration 참고 파일
 ├─ docs/
 │  ├─ planning/                 # 기획서, 유저스토리
-│  ├─ reports/                  # 발표/보고서용 정리 문서
-│  ├─ deployment/               # 배포 문서
-│  └─ refactor/                 # 구조 분석 및 리팩토링 계획
+│  └─ reports/                  # 발표/보고서, 시연 영상, 와이어프레임
+│     ├─ capture/               # 역할별 UI 시연 mp4
+│     └─ wireframe/             # 화면 기획 이미지
 ├─ .env.example                 # 전체 환경 변수 예시
 ├─ pull_request_template.md     # PR 템플릿
 └─ README.md                    # 프로젝트 안내 문서
@@ -116,6 +116,20 @@ BTS는 감독, 선수, 기록원 역할을 기준으로 야구팀 운영 기능�
 - `features/lineups/screens/BestMemberScreen.js`: 감독의 베스트 멤버 설정
 - `features/teams/screens/TeamInfoScreen.js`: 팀 정보, 로스터, 베스트 멤버 조회
 - `features/players/screens/PlayerDetailScreen.js`: 선수 상세 기록, 리뷰, AI 카드 생성
+
+## 시연 영상
+
+`docs/reports/capture/`에는 역할별 UI 흐름을 확인할 수 있는 mp4 시연 영상이 정리되어 있습니다.
+
+| 구분 | 영상 | 확인 가능한 흐름 |
+| --- | --- | --- |
+| 선수 전체 | [선수UI-전체.mp4](<docs/reports/capture/선수UI-전체.mp4>) | 선수 로그인 이후 주요 탭과 전체 사용 흐름 |
+| 선수 내 경기 | [선수UI-내경기.mp4](<docs/reports/capture/선수UI-내경기.mp4>) | 내 팀 경기, 라인업, 참석자/벤치 확인 |
+| 선수 일정 관리 | [선수UI-일정관리.mp4](<docs/reports/capture/선수UI-일정관리.mp4>) | 경기 일정 확인과 참석/불참/미응답 상태 관리 |
+| 선수 팀 정보 | [선수UI-팀정보.mp4](<docs/reports/capture/선수UI-팀정보.mp4>) | 팀 정보, 베스트 멤버, 로스터 조회 |
+| 선수 리그 일정 | [선수UI-리그일정.mp4](<docs/reports/capture/선수UI-리그일정.mp4>) | 리그 전체 경기 일정과 결과 조회 |
+| 감독 전체 | [감독UI-전체.mp4](<docs/reports/capture/감독UI-전체.mp4>) | 감독 일정 확인, 라인업 구성, 베스트 멤버 관리, 리뷰 생성 흐름 |
+| 기록원 전체 | [기록원(manager)UI-전체.mp4](<docs/reports/capture/기록원(manager)UI-전체.mp4>) | 경기 일정 등록, 수정, 삭제 중심의 기록원 관리 흐름 |
 
 ## 백엔드 API 요약
 
@@ -222,12 +236,15 @@ npm run web
 
 - `docs/planning/BTS_project_overview.md`: 프로젝트 목적, 문제 정의, MVP 범위
 - `docs/planning/BTS_user_stories.md`: 역할별 유저 스토리와 스토리포인트
-- `docs/reports/01_directory_structure.md`: 기존 디렉터리 구조 분석
-- `docs/reports/03_README.md`: 발표/보고서용 README 초안
-- `docs/deployment/04_deployment_guide.md`: 배포 가이드
-- `docs/reports/07_contributor_work_summary.md`: 기여 내역 정리
-- `docs/refactor/project_structure.md`: 리팩토링 전 파일별 역할 정리
-- `docs/refactor/project_restructure_plan.md`: 목표 구조와 단계별 리팩토링 계획
+- `docs/reports/project_structure.md`: 현재 파일 구조와 파일별 역할 정리
+- `docs/reports/02_user_flow_mermaid.md`: 역할별 사용자 흐름과 시스템 흐름 다이어그램
+- `docs/reports/06_presentation_suggestions.md`: 발표 구성과 데모 순서 제안
+- `docs/reports/DevLog.md`: 개발 노트와 와이어프레임 연결 자료
+- `docs/reports/dev_commit_history_detail.md`: dev 브랜치 커밋 기반 기여 분석
+- `docs/reports/choi_hyunseok_portfolio_problem_solving.md`: 포트폴리오용 문제 해결 기여 정리
+- `docs/reports/DESIGN.md`: 앱 디자인 방향과 UI 규칙
+- `docs/reports/capture/`: 역할별 UI 시연 mp4 영상
+- `docs/reports/wireframe/`: 로그인, 선수, 감독, 기록원 화면 기획 이미지
 
 ## 현재 구조의 특징
 

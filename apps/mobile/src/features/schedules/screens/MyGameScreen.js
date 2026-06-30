@@ -20,8 +20,7 @@ import CommonHeader from "../../../components/common/CommonHeader";
 import { useCallback, useState } from "react";
 
 const STADIUM_NAME = "수원 KT 위즈파크";
-const STADIUM_IMAGE_URI =
-  "https://i.namu.wiki/i/s5el6DSDQjJetZbb2WxKe-H8PtDQ6dfeZuMSKUtyro-XpSYN-lY2F-baCLWr_IqPi6nTTNQpa5zjc18gyN5xX01x2hKrAn65EKGflZmbyF1C5-hjFB2Te6mPOGzUeimD3AwO-qVSNz_C8nQSgaaozA.webp";
+const STADIUM_IMAGE = require("../../../../assets/baseballStadium.jpg");
 
 const PositionSlot = ({ pos, name, highlight }) => (
   <View style={[styles.slotStadium, highlight && styles.slotHighlightStadium]}>
@@ -302,7 +301,7 @@ const MyGameScreen = ({ route }) => {
             <Text style={styles.heroTitle}>리그 구장</Text>
 
             <ImageBackground
-              source={{ uri: STADIUM_IMAGE_URI }}
+              source={STADIUM_IMAGE}
               style={styles.heroImageSlot}
               imageStyle={styles.heroImage}
             >
